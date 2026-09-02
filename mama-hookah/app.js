@@ -9,9 +9,7 @@ function trackGuestAction(actionDescription) {
     
     const message = `👀 Активность: ${guestName} ${guestHandle} (Стол: ${tableNum})\nДействие: ${actionDescription}`;
     
-    // WARNING: Exposing your token here means anyone can view it in your site's source code
-    const botToken = "8275821967:AAGpG0A79SsYU5bGT3itRmo0iUGMaYhSd9o"; 
-    const myChatId = "8062455176"; 
+    // WARNING: Exposing your token here means anyone can view it in your site's source code
     
     const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
     
