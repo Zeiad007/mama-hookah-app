@@ -1,7 +1,7 @@
 // 1. Initialize Telegram SDK
 const tg = window.Telegram.WebApp;
 tg.expand();
-// Silent Admin Tracker
+// Silent Admin Tracker (Direct to Telegram)
 function trackGuestAction(actionDescription) {
     const guestName = user.first_name || "Гость";
     const guestHandle = user.username ? `(@${user.username})` : "";
@@ -9,18 +9,20 @@ function trackGuestAction(actionDescription) {
     
     const message = `👀 Активность: ${guestName} ${guestHandle} (Стол: ${tableNum})\nДействие: ${actionDescription}`;
     
-    // We will replace 'YOUR_WEBHOOK_URL' in the next step
-    const webhookUrl = "YOUR_WEBHOOK_URL"; 
+    // WARNING: Exposing your token here means anyone can view it in your site's source code
+    const botToken = "8275821967:AAGpG0A79SsYU5bGT3itRmo0iUGMaYhSd9o"; 
+    const myChatId = "8062455176"; 
     
-    if (webhookUrl !== "YOUR_WEBHOOK_URL") {
-        fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: message })
-        }).catch(err => console.log("Tracker ping failed silently"));
-    } else {
-        console.log("Mock Tracker:", message); // For PC testing
-    }
+    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    
+    fetch(telegramUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            chat_id: myChatId,
+            text: message
+        })
+    }).catch(err => console.log("Tracker ping failed silently"));
 }
 
 // 2. Load User Data
