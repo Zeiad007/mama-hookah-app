@@ -28,6 +28,16 @@
     </style>
 </head>
 <body class="overflow-hidden select-none text-gray-900">
+    <!-- Gatekeeper Lock Screen -->
+    <div id="gatekeeperScreen" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 text-center">
+        <img src="mama-logo-header.png" alt="Mama Hookah" class="h-16 mb-6">
+        <h2 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">Добро пожаловать</h2>
+        <p class="text-sm text-gray-500 mb-8 px-4">Для доступа к меню, создания миксов и получения кэшбека необходимо подтвердить номер телефона.</p>
+        <button onclick="forcePhoneLogin()" class="w-full bg-mama hover:bg-[#c90046] text-white font-bold text-lg py-4 rounded-xl shadow-lg transition-transform active:scale-95">
+            📞 Войти через Telegram
+        </button>
+        <p class="text-[10px] text-gray-400 mt-4">Нажимая кнопку, вы соглашаетесь поделиться контактом.</p>
+    </div>
 
     <div class="mobile-wrapper">
         <!-- Top Header -->

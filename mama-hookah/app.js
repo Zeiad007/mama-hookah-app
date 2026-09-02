@@ -314,3 +314,34 @@ function requestPhone() {
         initPassport();
     }
 }
+
+// 20. Gatekeeper Auth Logic
+document.addEventListener("DOMContentLoaded", () => {
+    // Check if the guest has already logged in during a previous visit
+    if (localStorage.getItem("mama_auth_phone") === "true") {
+        document.getElementById("gatekeeperScreen").classList.add("hidden");
+    }
+});
+
+window.forcePhoneLogin = function() {
+    const isTelegram = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "");
+    
+    if (isTelegram) {
+        tg.requestContact((shared) => {
+            if (shared) {
+                // Save login state to their phone's local storage
+                localStorage.setItem("mama_auth_phone", "true");
+                // Remove the lock screen
+                document.getElementById("gatekeeperScreen").classList.add("hidden");
+                // Award the 50 welcome points automatically
+                userLoyalty.points += 50;
+                initPassport(); 
+            }
+        });
+    } else {
+        // Fallback for PC testing
+        alert("📞 В Telegram появится системное окно с просьбой поделиться контактом.");
+        localStorage.setItem("mama_auth_phone", "true");
+        document.getElementById("gatekeeperScreen").classList.add("hidden");
+    }
+};
