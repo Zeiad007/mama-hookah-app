@@ -1,6 +1,27 @@
 // 1. Initialize Telegram SDK
 const tg = window.Telegram.WebApp;
 tg.expand();
+// Silent Admin Tracker
+function trackGuestAction(actionDescription) {
+    const guestName = user.first_name || "Гость";
+    const guestHandle = user.username ? `(@${user.username})` : "";
+    const tableNum = document.getElementById('mixTableNum')?.value || "Неизвестно";
+    
+    const message = `👀 Активность: ${guestName} ${guestHandle} (Стол: ${tableNum})\nДействие: ${actionDescription}`;
+    
+    // We will replace 'YOUR_WEBHOOK_URL' in the next step
+    const webhookUrl = "YOUR_WEBHOOK_URL"; 
+    
+    if (webhookUrl !== "YOUR_WEBHOOK_URL") {
+        fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: message })
+        }).catch(err => console.log("Tracker ping failed silently"));
+    } else {
+        console.log("Mock Tracker:", message); // For PC testing
+    }
+}
 
 // 2. Load User Data
 const user = tg.initDataUnsafe?.user || { first_name: "Гость" };
@@ -335,6 +356,7 @@ window.forcePhoneLogin = function() {
                 document.getElementById("gatekeeperScreen").classList.add("hidden");
                 // Award the 50 welcome points automatically
                 userLoyalty.points += 50;
+                trackGuestAction("Авторизовался и привязал номер телефона.");
                 initPassport(); 
             }
         });
