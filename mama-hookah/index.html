@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mama Hookah</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom Mama Brand Color -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mama: '#E60050', // Mama's signature magenta/pink
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .hidden { display: none !important; }
+        /* Forces the app to look like a phone screen on your computer */
+        .mobile-wrapper { max-width: 420px; margin: 0 auto; background: #ffffff; height: 100vh; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body class="overflow-hidden select-none text-gray-900">
+
+    <div class="mobile-wrapper">
+        <!-- Top Header -->
+        <header class="p-4 bg-white border-b border-gray-100 flex justify-between items-center z-10">
+            <div>
+                <!-- Your custom image logo -->
+                <img src="mama-logo-header.png" alt="Mama Hookah" class="h-8 object-contain mb-1">
+                <p class="text-[10px] text-gray-500 font-medium">Академика Парина 41</p>
+            </div>
+            <div class="text-right">
+                <p id="userName" class="text-sm font-bold text-gray-800">Гость</p>
+                <div class="bg-mama/10 text-mama text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-1 inline-block">
+                    СТОЛ: <span id="tableDisplay">--</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-4 pb-24 relative bg-gray-50">
+            
+        <!-- View 1: Live Shelf -->
+            <section id="view-shelf" class="space-y-4">
+                <h2 class="text-xl font-extrabold text-gray-900 mb-1">Наше меню</h2>
+                
+                <!-- Horizontal Filter Chips -->
+                <div class="flex space-x-2 overflow-x-auto pb-2 mb-2" style="scrollbar-width: none;">
+                    <button onclick="filterMenu('All', this)" class="filter-btn px-4 py-1.5 bg-mama text-white border border-transparent text-xs font-bold rounded-full whitespace-nowrap shadow-md shadow-mama/20 transition-all">Все</button>
+                    <button onclick="filterMenu('Must Have', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">Must Have</button>
+                    <button onclick="filterMenu('Black Burn', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">Black Burn</button>
+                    <button onclick="filterMenu('Deus', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">Deus</button>
+                    <button onclick="filterMenu('Tangiers', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">Tangiers</button>
+                </div>
+
+                <!-- The container where JS injects the cards -->
+                <div id="catalogContainer" class="space-y-3 pb-4"></div>
+            </section>
+
+<!-- View 2: Mix Lab -->
+            <section id="view-mixlab" class="hidden space-y-4">
+                <h2 class="text-xl font-extrabold text-gray-900 mb-1">Собери свой микс</h2>
+                <p class="text-sm text-gray-500 mb-4">Баланс 60/30/10 для идеальной чаши.</p>
+
+                <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
+                    <!-- Base 60% -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-mama uppercase tracking-widest mb-1.5">1. База (60%)</label>
+                        <select id="baseSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                            <option value="" disabled selected>Загрузка вкусов...</option>
+                        </select>
+                    </div>
+
+                    <!-- Accent 30% -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-mama uppercase tracking-widest mb-1.5">2. Акцент (30%)</label>
+                        <select id="accentSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                            <option value="" disabled selected>Загрузка вкусов...</option>
+                        </select>
+                    </div>
+
+                    <!-- Correction 10% -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-mama uppercase tracking-widest mb-1.5">3. Оттенок (10%)</label>
+                        <select id="adjSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                            <option value="Без оттенка" selected>Без оттенка (0%)</option>
+                        </select>
+                    </div>
+
+                    <hr class="border-gray-100 my-4">
+
+                    <!-- Bowl & Table -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Чаша</label>
+                            <select id="bowlSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30 appearance-none">
+                                <option value="Турка">Турка (Мягко)</option>
+                                <option value="Убивашка">Убивашка (Крепче)</option>
+                            </select>
+                        </div>
+                       <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Номер стола</label>
+                            <div class="relative">
+                                <input type="number" id="mixTableNum" placeholder="Напр: 4" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30 placeholder-gray-400 transition-all">
+                                <!-- Hidden Admin Lock Badge -->
+                                <span id="adminLockBadge" class="hidden absolute right-3 top-3.5 text-[10px] font-black bg-green-100 text-green-700 px-2 py-1 rounded-md">
+                                    ✓ Подтвержден
+                                </span>
+                            </div>
+                        </div>
+
+                    <button onclick="sendMixOrder()" class="w-full bg-mama hover:bg-[#c90046] text-white font-black text-sm py-4 rounded-xl shadow-md shadow-mama/30 transition-transform active:scale-95 mt-2">
+                        Отправить мастеру 💨
+                    </button>
+                </div>
+            </section>
+
+<!-- View 3: Passport -->
+            <section id="view-passport" class="hidden space-y-4">
+                <h2 class="text-xl font-extrabold text-gray-900 mb-1">Бонусная программа</h2>
+                <p class="text-sm text-gray-500 mb-4">Копите баллы и открывайте эксклюзивные привилегии.</p>
+
+                <!-- Membership Card -->
+                <div class="bg-gradient-to-br from-gray-900 to-zinc-800 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                    <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-mama/20 rounded-full blur-xl"></div>
+                    <div class="flex justify-between items-start mb-6 relative z-10">
+                        <div>
+                            <span class="text-[10px] font-bold tracking-widest uppercase text-gray-400">Карта гостя</span>
+                            <h3 id="passportName" class="text-lg font-black tracking-tight">Гость</h3>
+                        </div>
+                        <span id="passportBadge" class="bg-mama text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm">
+                            Silver
+                        </span>
+                    </div>
+
+                    <div class="mb-4 relative z-10">
+                        <span class="text-[10px] text-gray-400 uppercase font-semibold">Баланс баллов</span>
+                        <div class="flex items-baseline space-x-1">
+                            <span id="passportPoints" class="text-3xl font-black text-white">45</span>
+                            <span class="text-xs text-mama font-bold">баллов</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar to Next Tier -->
+                    <div class="space-y-1 relative z-10">
+                        <div class="flex justify-between text-[10px] font-bold text-gray-400">
+                            <span>Прогресс до Gold</span>
+                            <span id="passportProgressText">45 / 100</span>
+                        </div>
+                        <div class="w-full h-2 bg-zinc-700 rounded-full overflow-hidden">
+                            <div id="passportProgressBar" class="h-full bg-mama rounded-full transition-all duration-500" style="width: 45%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phone Registration -->
+                <div id="contactSection" class="mt-4 bg-white border border-gray-100 rounded-xl p-4 text-center shadow-sm">
+                    <h3 class="text-xs font-bold text-gray-900 mb-1">Привязать номер телефона</h3>
+                    <p class="text-[10px] text-gray-500 mb-3">Получите 50 приветственных баллов за регистрацию номера.</p>
+                    <button onclick="requestPhone()" class="w-full bg-gray-900 hover:bg-black text-white font-bold text-xs py-3 rounded-lg shadow-md transition-transform active:scale-95">
+                        📞 Поделиться контактом
+                    </button>
+                </div>
+
+                <!-- Rewards / Redeemables Section -->
+                <div class="space-y-2 pt-2">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">На что потратить баллы</h3>
+
+                    <div class="bg-white border border-gray-100 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-mama/10 flex items-center justify-center text-lg">🫖</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-900">Чайник авторского чая</h4>
+                                <p class="text-[11px] text-gray-400">Марокканский цитрус или ягодный</p>
+                            </div>
+                        </div>
+                        <button onclick="redeemReward('Чайник авторского чая', 30)" class="px-3 py-1.5 bg-gray-50 border border-gray-200 hover:border-mama text-mama text-xs font-extrabold rounded-lg transition-all">
+                            30 Б
+                        </button>
+                    </div>
+
+                    <div class="bg-white border border-gray-100 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-mama/10 flex items-center justify-center text-lg">💨</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-900">Скидка 25% на перезабив</h4>
+                                <p class="text-[11px] text-gray-400">Вторая чаша в этой же сессии</p>
+                            </div>
+                        </div>
+                        <button onclick="redeemReward('Скидка 25% на перезабив', 50)" class="px-3 py-1.5 bg-gray-50 border border-gray-200 hover:border-mama text-mama text-xs font-extrabold rounded-lg transition-all">
+                            50 Б
+                        </button>
+                    </div>
+
+                    <div class="bg-white border border-gray-100 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-mama/10 flex items-center justify-center text-lg">👑</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-900">Апгрейд до Bonche / Tangiers</h4>
+                                <p class="text-[11px] text-gray-400">Бесплатный сигарный бленд</p>
+                            </div>
+                        </div>
+                        <button onclick="redeemReward('Апгрейд до Bonche/Tangiers', 75)" class="px-3 py-1.5 bg-gray-50 border border-gray-200 hover:border-mama text-mama text-xs font-extrabold rounded-lg transition-all">
+                            75 Б
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View 4: History -->
+            <section id="view-history" class="hidden space-y-4">
+                <h2 class="text-xl font-extrabold text-gray-900 mb-1">История заказов</h2>
+                <p class="text-sm text-gray-500 mb-4">Ваши любимые миксы из прошлых визитов.</p>
+                
+                <!-- The container where JS injects the history cards -->
+                <div id="historyContainer" class="space-y-3 pb-4">
+                    <p class="text-sm text-gray-400 text-center mt-10">Загрузка истории...</p>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around p-3 pb-6 z-20">
+            <button onclick="switchTab('shelf')" id="tab-shelf" class="text-mama flex flex-col items-center transition-colors">
+                <span class="text-xl">📋</span>
+                <span class="text-[10px] font-bold mt-1">Меню</span>
+            </button>
+            <button onclick="switchTab('mixlab')" id="tab-mixlab" class="text-gray-300 hover:text-gray-400 flex flex-col items-center transition-colors">
+                <span class="text-xl">🧪</span>
+                <span class="text-[10px] font-bold mt-1">Микс</span>
+            </button>
+            <button onclick="switchTab('passport')" id="tab-passport" class="text-gray-300 hover:text-gray-400 flex flex-col items-center transition-colors">
+                <span class="text-xl">🎁</span>
+                <span class="text-[10px] font-bold mt-1">Баллы</span>
+            </button>
+            <button onclick="switchTab('history')" id="tab-history" class="text-gray-300 hover:text-gray-400 flex flex-col items-center transition-colors">
+                <span class="text-xl">⏳</span>
+                <span class="text-[10px] font-bold mt-1">История</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
