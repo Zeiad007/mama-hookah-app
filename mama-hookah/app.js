@@ -1,3 +1,9 @@
+// 0. Initialize Supabase Client
+const SUPABASE_URL = "https://piukdhvjshkrikapvnbn.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_dq8-Jy0YxUFXWosTQHvoaA_SHLIUctL"; // Click the copy icon next to Publishable key
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // 1. Initialize Telegram SDK
 const tg = window.Telegram.WebApp;
 tg.expand();
@@ -9,7 +15,9 @@ function trackGuestAction(actionDescription) {
     
     const message = `👀 Активность: ${guestName} ${guestHandle} (Стол: ${tableNum})\nДействие: ${actionDescription}`;
     
-    // WARNING: Exposing your token here means anyone can view it in your site's source code
+    // WARNING: Exposing your token here means anyone can view it in your site's source code
+    const botToken = "8275821967:AAGpG0A79SsYU5bGT3itRmo0iUGMaYhSd9o"; 
+    const myChatId = "8062455176"; 
     
     const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
     
@@ -367,3 +375,101 @@ window.forcePhoneLogin = function() {
         document.getElementById("gatekeeperScreen").classList.add("hidden");
     }
 };
+
+
+// Detect table from Telegram deep link or URL parameter
+function initTableNumber() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let tableNum = urlParams.get('table');
+
+    // Check Telegram WebApp start_param (e.g. "table_4" or "4")
+    if (!tableNum && tg.initDataUnsafe?.start_param) {
+        tableNum = tg.initDataUnsafe.start_param.replace('table_', '');
+    }
+
+    if (tableNum) {
+        // Update header badge
+        const badge = document.querySelector('.text-mama'); // or your table badge element
+        const tableBadges = document.querySelectorAll('span');
+        tableBadges.forEach(el => {
+            if (el.textContent.includes('СТОЛ:')) el.textContent = `СТОЛ: ${tableNum}`;
+        });
+
+        // Autofill and lock the table input in the mix form
+        const tableInput = document.getElementById('mixTableNum');
+        if (tableInput) {
+            tableInput.value = tableNum;
+            tableInput.readOnly = true;
+            tableInput.classList.add('bg-gray-100', 'text-gray-500');
+        }
+    }
+}
+
+
+// Fetch active flavors from Supabase and populate UI
+async function loadFlavorsFromDB() {
+    const { data: flavors, error } = await supabase
+        .from('flavors')
+        .select('*')
+        .eq('in_stock', true);
+
+    if (error) {
+        console.error('Error fetching flavors:', error);
+        return;
+    }
+
+    // Populate the 3 dropdowns in the Mix tab
+    const baseSelect = document.querySelector('select[name="base"]');
+    const accentSelect = document.querySelector('select[name="accent"]');
+    const shadeSelect = document.querySelector('select[name="shade"]');
+
+    const optionsHtml = flavors.map(f => 
+        `<option value="${f.name}">${f.brand} - ${f.name} (${f.strength}/10)</option>`
+    ).join('');
+
+    if (baseSelect) baseSelect.innerHTML = `<option value="">Выберите вкус...</option>` + optionsHtml;
+    if (accentSelect) accentSelect.innerHTML = `<option value="">Выберите вкус...</option>` + optionsHtml;
+    if (shadeSelect) shadeSelect.innerHTML = `<option value="Без оттенка">Без оттенка (0%)</option>` + optionsHtml;
+}
+
+window.forcePhoneLogin = function() {
+    const isTelegram = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "");
+    
+    if (isTelegram) {
+        tg.requestContact(async (shared) => {
+            if (shared) {
+                const tgUser = tg.initDataUnsafe?.user || {};
+                const contactData = tg.initDataUnsafe?.user?.phone_number || "Shared via Bot";
+
+                // Save to Supabase
+                const { error } = await supabase.from('guests').upsert({
+                    telegram_id: tgUser.id,
+                    first_name: tgUser.first_name || 'Гость',
+                    username: tgUser.username || null,
+                    phone_number: contactData,
+                    points: 50,
+                    tier: 'SILVER'
+                });
+
+                if (error) console.error("Error saving guest:", error);
+
+                localStorage.setItem("mama_auth_phone", "true");
+                document.getElementById("gatekeeperScreen").classList.add("hidden");
+                initPassport();
+            }
+        });
+    } else {
+        localStorage.setItem("mama_auth_phone", "true");
+        document.getElementById("gatekeeperScreen").classList.add("hidden");
+    }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    initTableNumber();
+    loadFlavorsFromDB();
+
+    if (localStorage.getItem("mama_auth_phone") === "true") {
+        const gate = document.getElementById("gatekeeperScreen");
+        if (gate) gate.classList.add("hidden");
+    }
+});
