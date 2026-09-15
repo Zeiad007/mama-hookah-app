@@ -109,20 +109,39 @@ function filterMenu(brandName, buttonElement) {
     }
 }
 
-async function loadFlavorsFromDB() {
-    const { data: flavors, error } = await supabaseClient
-        .from('flavors')
-        .select('*')
-        .eq('in_stock', true);
+// Default offline catalog if database connection fails
+const defaultCatalog = [
+    { brand: "Must Have", name: "Pinkman", strength: 5, flavor_notes: "Малина, грейпфрут, клубника. Кисло-сладкий.", tag: "Ягодный" },
+    { brand: "Must Have", name: "Mango Sling", strength: 5, flavor_notes: "Пряный сочный манго с холодком.", tag: "Тропический" },
+    { brand: "Black Burn", name: "Apple Shock", strength: 7, flavor_notes: "Экстремально кислое зеленое яблоко.", tag: "Кислый" },
+    { brand: "Black Burn", name: "Ananas Shock", strength: 7, flavor_notes: "Кислый ананасовый леденец.", tag: "Кислый" },
+    { brand: "Deus", name: "Pomegranate Morse", strength: 7, flavor_notes: "Натуральный терпкий гранатовый морс.", tag: "Ягодный" }
+];
 
-    if (error) {
-        console.error('Error fetching flavors:', error);
-        return;
+async function loadFlavorsFromDB() {
+    let flavors = [];
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('flavors')
+            .select('*')
+            .eq('in_stock', true);
+
+        if (error || !data || data.length === 0) {
+            console.warn('Database offline or empty. Falling back to local catalog.');
+            flavors = defaultCatalog;
+        } else {
+            flavors = data;
+        }
+    } catch (err) {
+        console.warn('Network failure. Using local catalog.');
+        flavors = defaultCatalog;
     }
 
     liveCatalog = flavors;
     renderCatalog(liveCatalog);
 
+    // Populate dropdowns in Mix tab
     const baseSelect = document.getElementById('baseSelect');
     const accentSelect = document.getElementById('accentSelect');
     const adjSelect = document.getElementById('adjSelect');
