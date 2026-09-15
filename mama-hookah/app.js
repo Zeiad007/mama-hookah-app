@@ -1,6 +1,5 @@
 // 0. Supabase Initialization
 const SUPABASE_URL = "https://piukdhvjshkrikapvnbn.supabase.co";
-// Paste your JWT anon key (starts with eyJ...) here:
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpdWtkaHZqc2hrcmlrYXB2bmJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0ODk4NDksImV4cCI6MjEwNTA2NTg0OX0.1xrBJ8ni3U6qGp3_Q245qT9ddRL9dcG-2L_OYRvQWAs"; 
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -10,7 +9,8 @@ const tg = window.Telegram?.WebApp || {};
 if (tg.expand) tg.expand();
 
 const user = tg.initDataUnsafe?.user || { first_name: "Гость", id: null };
-document.getElementById('userName').innerText = user.first_name;
+const userNameEl = document.getElementById('userName');
+if (userNameEl) userNameEl.innerText = user.first_name || "Гость";
 
 // 2. Silent Admin Tracker (Direct to Telegram)
 function trackGuestAction(actionDescription) {
@@ -48,7 +48,6 @@ function switchTab(activeTab) {
         activeBtn.classList.add('text-mama');
     }
 
-    // Refresh history from database when opening the tab
     if (activeTab === 'history') {
         loadOrderHistoryFromDB();
     }
@@ -64,7 +63,9 @@ function initTableNumber() {
     }
 
     if (tableNum) {
-        document.getElementById('tableDisplay').innerText = tableNum;
+        const tableDisplay = document.getElementById('tableDisplay');
+        if (tableDisplay) tableDisplay.innerText = tableNum;
+        
         const tableInput = document.getElementById('mixTableNum');
         if (tableInput) {
             tableInput.value = tableNum;
@@ -74,8 +75,16 @@ function initTableNumber() {
     }
 }
 
-// 5. Tobacco Catalog & Live Database Loading
+// 5. Catalog Engine & Live Database Loading
 let liveCatalog = [];
+
+const defaultCatalog = [
+    { brand: "Must Have", name: "Pinkman", strength: 5, flavor_notes: "Малина, грейпфрут, клубника. Кисло-сладкий.", tag: "Ягодный" },
+    { brand: "Must Have", name: "Mango Sling", strength: 5, flavor_notes: "Пряный сочный манго с холодком.", tag: "Тропический" },
+    { brand: "Black Burn", name: "Apple Shock", strength: 7, flavor_notes: "Экстремально кислое зеленое яблоко.", tag: "Кислый" },
+    { brand: "Black Burn", name: "Ananas Shock", strength: 7, flavor_notes: "Кислый ананасовый леденец.", tag: "Кислый" },
+    { brand: "Deus", name: "Pomegranate Morse", strength: 7, flavor_notes: "Натуральный терпкий гранатовый морс.", tag: "Ягодный" }
+];
 
 function renderCatalog(items) {
     const container = document.getElementById('catalogContainer');
@@ -114,18 +123,8 @@ function filterMenu(brandName, buttonElement) {
     }
 }
 
-// Default offline catalog if database connection fails
-const defaultCatalog = [
-    { brand: "Must Have", name: "Pinkman", strength: 5, flavor_notes: "Малина, грейпфрут, клубника. Кисло-сладкий.", tag: "Ягодный" },
-    { brand: "Must Have", name: "Mango Sling", strength: 5, flavor_notes: "Пряный сочный манго с холодком.", tag: "Тропический" },
-    { brand: "Black Burn", name: "Apple Shock", strength: 7, flavor_notes: "Экстремально кислое зеленое яблоко.", tag: "Кислый" },
-    { brand: "Black Burn", name: "Ananas Shock", strength: 7, flavor_notes: "Кислый ананасовый леденец.", tag: "Кислый" },
-    { brand: "Deus", name: "Pomegranate Morse", strength: 7, flavor_notes: "Натуральный терпкий гранатовый морс.", tag: "Ягодный" }
-];
-
 async function loadFlavorsFromDB() {
     let flavors = [];
-
     try {
         const { data, error } = await supabaseClient
             .from('flavors')
@@ -133,20 +132,19 @@ async function loadFlavorsFromDB() {
             .eq('in_stock', true);
 
         if (error || !data || data.length === 0) {
-            console.warn('Database offline or empty. Falling back to local catalog.');
+            console.warn('Database offline or empty. Using fallback.');
             flavors = defaultCatalog;
         } else {
             flavors = data;
         }
     } catch (err) {
-        console.warn('Network failure. Using local catalog.');
+        console.warn('Network error. Using fallback.');
         flavors = defaultCatalog;
     }
 
     liveCatalog = flavors;
     renderCatalog(liveCatalog);
 
-    // Populate dropdowns in Mix tab
     const baseSelect = document.getElementById('baseSelect');
     const accentSelect = document.getElementById('accentSelect');
     const adjSelect = document.getElementById('adjSelect');
@@ -160,7 +158,7 @@ async function loadFlavorsFromDB() {
     if (adjSelect) adjSelect.innerHTML = `<option value="Без оттенка" selected>Без оттенка (0%)</option>` + optionsHtml;
 }
 
-// 6. Order Submission to Supabase & Telegram
+// 6. Order Submission with +15 Cashback Points
 window.sendMixOrder = async function() {
     const base = document.getElementById('baseSelect').value;
     const accent = document.getElementById('accentSelect').value;
@@ -168,8 +166,8 @@ window.sendMixOrder = async function() {
     const bowl = document.getElementById('bowlSelect').value;
     const tableNum = document.getElementById('mixTableNum').value;
 
-    if (!tableNum) {
-        alert("Пожалуйста, укажите номер стола!");
+    if (!tableNum || isNaN(parseInt(tableNum, 10))) {
+        alert("Пожалуйста, укажите корректный номер стола!");
         return;
     }
     if (!base || base.includes("Выберите")) {
@@ -181,9 +179,8 @@ window.sendMixOrder = async function() {
         return;
     }
 
-    // Insert order into Supabase
     const { error } = await supabaseClient.from('orders').insert([{
-        table_number: parseInt(tableNum),
+        table_number: parseInt(tableNum, 10),
         guest_telegram_id: user.id || null,
         bowl_type: bowl,
         base_flavor: base,
@@ -198,36 +195,112 @@ window.sendMixOrder = async function() {
         return;
     }
 
-    trackGuestAction(`Заказал микс:\nЧаша: ${bowl}\n60%: ${base}\n30%: ${accent}\n10%: ${adj}`);
+    // Award +15 Points Cashback
+    const updatedBalance = userLoyalty.points + 15;
+    if (user.id) {
+        await supabaseClient
+            .from('guests')
+            .update({ points: updatedBalance })
+            .eq('telegram_id', user.id);
+    } else {
+        localStorage.setItem("mama_guest_points", updatedBalance.toString());
+    }
+    userLoyalty.points = updatedBalance;
+    initPassport();
+
+    trackGuestAction(`Заказал микс (+15 Б):\nЧаша: ${bowl}\n60%: ${base}\n30%: ${accent}\n10%: ${adj}`);
     
     if (tg.showAlert) {
-        tg.showAlert(`✅ Заказ принят для стола #${tableNum}! Мастер уже готовит.`);
+        tg.showAlert(`✅ Заказ принят для стола #${tableNum}! Начислено +15 баллов.`);
     } else {
-        alert(`✅ Заказ принят для стола #${tableNum}! Мастер уже готовит.`);
+        alert(`✅ Заказ принят для стола #${tableNum}! Начислено +15 баллов.`);
     }
 };
 
-// 7. Loyalty Program Logic
-const userLoyalty = { points: 45, nextTierTarget: 100, tierName: "Silver" };
+// 7. Loyalty Program Logic & Database Sync
+let userLoyalty = { points: 0, nextTierTarget: 100, tierName: "Silver" };
 
-function initPassport() {
-    document.getElementById('passportName').innerText = user.first_name;
-    document.getElementById('passportPoints').innerText = userLoyalty.points;
-    document.getElementById('passportBadge').innerText = userLoyalty.tierName;
-    
-    const progressPercent = Math.min(100, Math.round((userLoyalty.points / userLoyalty.nextTierTarget) * 100));
-    document.getElementById('passportProgressText').innerText = `${userLoyalty.points} / ${userLoyalty.nextTierTarget}`;
-    document.getElementById('passportProgressBar').style.width = `${progressPercent}%`;
+async function syncGuestLoyalty() {
+    if (!user.id) {
+        userLoyalty.points = parseInt(localStorage.getItem("mama_guest_points") || "0", 10);
+        initPassport();
+        return;
+    }
+
+    const { data, error } = await supabaseClient
+        .from('guests')
+        .select('points, tier')
+        .eq('telegram_id', user.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Error loading guest points:", error);
+        return;
+    }
+
+    if (data) {
+        userLoyalty.points = data.points ?? 0;
+        userLoyalty.tierName = data.tier ?? "Silver";
+    }
+    initPassport();
 }
 
-window.redeemReward = function(rewardTitle, cost) {
+function initPassport() {
+    const passportName = document.getElementById('passportName');
+    const passportPoints = document.getElementById('passportPoints');
+    const passportBadge = document.getElementById('passportBadge');
+    const progressText = document.getElementById('passportProgressText');
+    const progressBar = document.getElementById('passportProgressBar');
+
+    if (passportName) passportName.innerText = user.first_name || "Гость";
+    if (passportPoints) passportPoints.innerText = userLoyalty.points;
+
+    if (userLoyalty.points >= 250) {
+        userLoyalty.tierName = "Platinum";
+        userLoyalty.nextTierTarget = 500;
+    } else if (userLoyalty.points >= 100) {
+        userLoyalty.tierName = "Gold";
+        userLoyalty.nextTierTarget = 250;
+    } else {
+        userLoyalty.tierName = "Silver";
+        userLoyalty.nextTierTarget = 100;
+    }
+
+    if (passportBadge) passportBadge.innerText = userLoyalty.tierName;
+
+    const progressPercent = Math.min(100, Math.round((userLoyalty.points / userLoyalty.nextTierTarget) * 100));
+    if (progressText) progressText.innerText = `${userLoyalty.points} / ${userLoyalty.nextTierTarget}`;
+    if (progressBar) progressBar.style.width = `${progressPercent}%`;
+}
+
+window.redeemReward = async function(rewardTitle, cost) {
     if (userLoyalty.points < cost) {
         const msg = `Недостаточно баллов. Нужно еще ${cost - userLoyalty.points} баллов.`;
         if (tg.showAlert) tg.showAlert(msg); else alert(msg);
         return;
     }
-    userLoyalty.points -= cost;
+
+    const newBalance = userLoyalty.points - cost;
+
+    if (user.id) {
+        const { error } = await supabaseClient
+            .from('guests')
+            .update({ points: newBalance })
+            .eq('telegram_id', user.id);
+
+        if (error) {
+            console.error("Failed to deduct points:", error);
+            alert("Не удалось активировать купон. Попробуйте снова.");
+            return;
+        }
+    } else {
+        localStorage.setItem("mama_guest_points", newBalance.toString());
+    }
+
+    userLoyalty.points = newBalance;
     initPassport();
+    trackGuestAction(`Активировал купон: "${rewardTitle}" (-${cost} Б)`);
+
     const successMsg = `🎁 Купон активирован: "${rewardTitle}"!\nПокажите этот экран кальянному мастеру.`;
     if (tg.showAlert) tg.showAlert(successMsg); else alert(successMsg);
 };
@@ -251,16 +324,18 @@ window.forcePhoneLogin = function() {
                 });
 
                 localStorage.setItem("mama_auth_phone", "true");
-                document.getElementById("gatekeeperScreen").classList.add("hidden");
-                userLoyalty.points += 50;
+                document.getElementById("gatekeeperScreen")?.classList.add("hidden");
+                userLoyalty.points = 50;
                 initPassport();
                 trackGuestAction("Авторизовался и привязал номер телефона.");
             }
         });
     } else {
         localStorage.setItem("mama_auth_phone", "true");
-        document.getElementById("gatekeeperScreen").classList.add("hidden");
+        localStorage.setItem("mama_guest_points", "50");
+        userLoyalty.points = 50;
         initPassport();
+        document.getElementById("gatekeeperScreen")?.classList.add("hidden");
     }
 };
 
@@ -273,7 +348,9 @@ if (logoImage) {
         if (clickCount === 5) {
             const newTable = prompt("Admin Override: Введите номер стола:");
             if (newTable) {
-                document.getElementById('tableDisplay').innerText = newTable;
+                const tableDisplay = document.getElementById('tableDisplay');
+                if (tableDisplay) tableDisplay.innerText = newTable;
+                
                 const tableInput = document.getElementById('mixTableNum');
                 if (tableInput) {
                     tableInput.value = newTable;
@@ -285,7 +362,7 @@ if (logoImage) {
     });
 }
 
-// 9.5 Live Order History from Supabase
+// 10. Live Order History from Supabase
 async function loadOrderHistoryFromDB() {
     const container = document.getElementById('historyContainer');
     if (!container) return;
@@ -298,7 +375,6 @@ async function loadOrderHistoryFromDB() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-    // If inside Telegram, filter by guest ID; otherwise show recent table orders
     if (user.id) {
         query = query.eq('guest_telegram_id', user.id);
     }
@@ -347,11 +423,11 @@ window.reorderSavedMix = function(base, accent, shade, bowl) {
     if (tg.showAlert) tg.showAlert("Микс скопирован в конструктор!");
 };
 
-// 10. Bootstrap Application
+// 11. Bootstrap Application
 document.addEventListener("DOMContentLoaded", () => {
     initTableNumber();
     loadFlavorsFromDB();
-    initPassport();
+    syncGuestLoyalty();
 
     if (localStorage.getItem("mama_auth_phone") === "true") {
         document.getElementById("gatekeeperScreen")?.classList.add("hidden");

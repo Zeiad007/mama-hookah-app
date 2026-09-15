@@ -3,86 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mama Admin Panel</title>
+    <title>Mama Hookah — Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        tailwind.config = { theme: { extend: { colors: { mama: '#E60050' } } } }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mama: '#FF334B',
+                        darkBg: '#0F1117',
+                        cardBg: '#181C24'
+                    }
+                }
+            }
+        }
     </script>
 </head>
-<body class="bg-gray-100 font-sans text-gray-900 p-6">
+<body class="bg-darkBg text-gray-100 min-h-screen antialiased flex flex-col font-sans">
 
-    <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <header class="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm mb-6">
-            <div>
-                <h1 class="text-2xl font-black text-mama lowercase tracking-tighter">mama<span class="text-sm text-gray-800 uppercase tracking-widest ml-2 font-bold">Terminal</span></h1>
-                <p class="text-xs text-gray-500">Смена: Ахмед • 2 Сентября 2026</p>
-            </div>
-            <div class="flex space-x-3">
-                <div class="px-4 py-2 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-bold flex items-center">
-                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-                    Система онлайн
-                </div>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-3 gap-6">
-            
-            <!-- Column 1: Live Table Radar -->
-            <div class="col-span-1 space-y-4">
-                <h2 class="text-lg font-extrabold text-gray-800">Радар столов (Live)</h2>
-                
-                <!-- Table Card (Active) -->
-                <div class="bg-white p-4 rounded-xl border border-mama shadow-sm shadow-mama/10">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="bg-mama text-white text-xs font-black px-2 py-1 rounded-md">Стол 4</span>
-                        <span class="text-[10px] font-bold text-gray-400">14 мин. назад</span>
-                    </div>
-                    <p class="text-sm font-bold text-gray-900">Гость: Иван</p>
-                    <p class="text-xs text-gray-500">Статус: <span class="text-green-600 font-bold">Сканировал QR, выбирает микс</span></p>
-                </div>
-
-                <!-- Table Card (Active) -->
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="bg-gray-800 text-white text-xs font-black px-2 py-1 rounded-md">Стол 12</span>
-                        <span class="text-[10px] font-bold text-gray-400">45 мин. назад</span>
-                    </div>
-                    <p class="text-sm font-bold text-gray-900">Гость: Анна (Gold)</p>
-                    <p class="text-xs text-gray-500">Статус: Курит (Пора предложить перезабив)</p>
-                </div>
-            </div>
-
-            <!-- Column 2 & 3: Incoming Orders -->
-            <div class="col-span-2 space-y-4">
-                <h2 class="text-lg font-extrabold text-gray-800">Очередь заказов</h2>
-                
-                <!-- Order Ticket -->
-                <div class="bg-white p-5 rounded-2xl border-l-4 border-mama shadow-sm flex justify-between items-center">
-                    <div class="space-y-1">
-                        <div class="flex items-center space-x-3 mb-2">
-                            <span class="bg-gray-100 text-gray-800 text-sm font-black px-3 py-1 rounded-lg">Стол 4</span>
-                            <span class="text-sm font-bold text-gray-900">Иван</span>
-                            <span class="text-xs text-mama font-bold bg-mama/10 px-2 py-0.5 rounded-full">Новый заказ</span>
-                        </div>
-                        <p class="text-sm font-bold text-gray-800"><span class="text-mama">60%</span> Must Have — Pinkman</p>
-                        <p class="text-sm font-bold text-gray-800"><span class="text-mama">30%</span> Black Burn — Apple Shock</p>
-                        <p class="text-sm font-bold text-gray-800"><span class="text-gray-400">10%</span> Tangiers — Cane Mint</p>
-                        <p class="text-xs text-gray-500 mt-2">Подача: Убивашка</p>
-                    </div>
-                    
-                    <div class="space-y-2 flex flex-col w-40">
-                        <button class="w-full bg-mama hover:bg-[#c90046] text-white font-bold text-xs py-3 rounded-xl transition-colors">
-                            Взять в работу
-                        </button>
-                        <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs py-3 rounded-xl transition-colors">
-                            Отклонить
-                        </button>
-                    </div>
-                </div>
-            </div>
-
+    <!-- Top Navigation -->
+    <header class="bg-cardBg border-b border-gray-800 px-6 py-4 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <span class="text-xl font-black text-white tracking-wider flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-mama animate-pulse"></span> MAMA CONTROL
+            </span>
+            <span class="text-xs bg-gray-800 text-gray-400 px-2.5 py-1 rounded-full font-semibold" id="lastUpdated">Синхронизировано</span>
         </div>
-    </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex items-center gap-2 bg-gray-900/80 p-1 rounded-xl border border-gray-800 text-xs font-bold">
+            <button onclick="switchAdminView('orders')" id="tabBtn-orders" class="px-4 py-2 rounded-lg bg-mama text-white transition-all">
+                Заказы (<span id="activeCountBadge">0</span>)
+            </button>
+            <button onclick="switchAdminView('stock')" id="tabBtn-stock" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white transition-all">
+                Склад табаков
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+
+        <!-- Stat KPI Cards -->
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-cardBg border border-gray-800/80 rounded-2xl p-5 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">В очереди</p>
+                    <h2 class="text-3xl font-black text-white mt-1" id="statPending">0</h2>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-xl">⏳</div>
+            </div>
+
+            <div class="bg-cardBg border border-gray-800/80 rounded-2xl p-5 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Подано сегодня</p>
+                    <h2 class="text-3xl font-black text-emerald-400 mt-1" id="statServed">0</h2>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xl">✅</div>
+            </div>
+
+            <div class="bg-cardBg border border-gray-800/80 rounded-2xl p-5 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Закончилось табаков</p>
+                    <h2 class="text-3xl font-black text-mama mt-1" id="statOutOfStock">0</h2>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-mama/10 text-mama flex items-center justify-center font-bold text-xl">⚠️</div>
+            </div>
+        </section>
+
+        <!-- VIEW 1: Active Orders Grid -->
+        <section id="view-orders" class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-extrabold text-white flex items-center gap-2">
+                    Активные чаши
+                </h3>
+                <button onclick="fetchOrders()" class="text-xs text-gray-400 hover:text-white bg-gray-800/70 border border-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors">
+                    Обновить ↻
+                </button>
+            </div>
+
+            <div id="ordersContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="col-span-full text-center py-12 text-gray-500 text-sm">Загрузка заказов...</div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: Tobacco Stock Management -->
+        <section id="view-stock" class="space-y-4 hidden">
+            <div class="flex flex-wrap justify-between items-center gap-3">
+                <h3 class="text-lg font-extrabold text-white">Управление остатками</h3>
+                <input 
+                    type="text" 
+                    id="stockSearchInput" 
+                    oninput="filterStockTable()" 
+                    placeholder="Поиск по бренду или вкусу..." 
+                    class="bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-mama w-72"
+                >
+            </div>
+
+            <div class="bg-cardBg border border-gray-800 rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-300">
+                        <thead class="bg-gray-900/60 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-800">
+                            <tr>
+                                <th class="px-5 py-3.5">Бренд & Название</th>
+                                <th class="px-5 py-3.5">Профиль вкуса</th>
+                                <th class="px-5 py-3.5">Крепость</th>
+                                <th class="px-5 py-3.5 text-right">Наличие</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody" class="divide-y divide-gray-800">
+                            <tr><td colspan="4" class="px-5 py-8 text-center text-gray-500">Загрузка табаков...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const SUPABASE_URL = "https://piukdhvjshkrikapvnbn.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpdWtkaHZqc2hrcmlrYXB2bmJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0ODk4NDksImV4cCI6MjEwNTA2NTg0OX0.1xrBJ8ni3U6qGp3_Q245qT9ddRL9dcG-2L_OYRvQWAs";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let allFlavors = [];
+        let allOrders = [];
+
+        // 1. Tab Switching
+        function switchAdminView(view) {
+            document.getElementById('view-orders').classList.toggle('hidden', view !== 'orders');
+            document.getElementById('view-stock').classList.toggle('hidden', view !== 'stock');
+
+            const orderBtn = document.getElementById('tabBtn-orders');
+            const stockBtn = document.getElementById('tabBtn-stock');
+
+            if (view === 'orders') {
+                orderBtn.className = "px-4 py-2 rounded-lg bg-mama text-white transition-all";
+                stockBtn.className = "px-4 py-2 rounded-lg text-gray-400 hover:text-white transition-all";
+            } else {
+                stockBtn.className = "px-4 py-2 rounded-lg bg-mama text-white transition-all";
+                orderBtn.className = "px-4 py-2 rounded-lg text-gray-400 hover:text-white transition-all";
+            }
+        }
+
+        // 2. Fetch & Render Orders
+        async function fetchOrders() {
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Orders query failed:", error);
+                return;
+            }
+
+            allOrders = data || [];
+            updateKPIs();
+            renderOrdersUI();
+            document.getElementById('lastUpdated').innerText = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function renderOrdersUI() {
+            const container = document.getElementById('ordersContainer');
+            if (allOrders.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-16 text-gray-500 font-semibold">Новых заказов пока нет</div>`;
+                return;
+            }
+
+            container.innerHTML = allOrders.map(order => {
+                const time = new Date(order.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const isPending = order.status === 'pending';
+                const isServed = order.status === 'served';
+
+                return `
+                    <div class="bg-cardBg border ${isPending ? 'border-amber-500/40 shadow-lg shadow-amber-500/5' : 'border-gray-800'} rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                        <div>
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <span class="text-xs font-bold text-gray-500">${time}</span>
+                                    <h4 class="text-2xl font-black text-white">Стол #${order.table_number}</h4>
+                                </div>
+                                <span class="text-[11px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider ${
+                                    isPending ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 
+                                    isServed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+                                    'bg-gray-800 text-gray-400'
+                                }">
+                                    ${isPending ? 'Ожидает' : isServed ? 'Подан' : 'Готовится'}
+                                </span>
+                            </div>
+
+                            <div class="space-y-2 bg-gray-900/60 p-3.5 rounded-xl border border-gray-800 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-mama/20 text-mama">60%</span>
+                                    <span class="font-bold text-gray-200">${order.base_flavor}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">30%</span>
+                                    <span class="font-bold text-gray-200">${order.accent_flavor}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">10%</span>
+                                    <span class="text-gray-400 font-semibold">${order.shade_flavor || "Без оттенка"}</span>
+                                </div>
+                                <div class="pt-2 border-t border-gray-800 text-xs text-gray-400 flex justify-between">
+                                    <span>Чаша: <b class="text-gray-200">${order.bowl_type}</b></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            ${isPending ? `
+                                <button onclick="updateOrderStatus(${order.id}, 'preparing')" class="bg-gray-800 hover:bg-gray-700 text-amber-400 border border-amber-500/30 font-bold py-2 rounded-xl text-xs transition-colors">
+                                    В работу 🔨
+                                </button>
+                                <button onclick="updateOrderStatus(${order.id}, 'served')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors">
+                                    Подан ✅
+                                </button>
+                            ` : !isServed ? `
+                                <button onclick="updateOrderStatus(${order.id}, 'served')" class="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors">
+                                    Отметить как Подан ✅
+                                </button>
+                            ` : `
+                                <button onclick="updateOrderStatus(${order.id}, 'pending')" class="col-span-2 bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold py-1.5 rounded-xl text-xs transition-colors">
+                                    Вернуть в работу ↻
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            const { error } = await supabase
+                .from('orders')
+                .update({ status: newStatus })
+                .eq('id', orderId);
+
+            if (error) {
+                alert("Ошибка обновления статуса!");
+                console.error(error);
+                return;
+            }
+            fetchOrders();
+        }
+
+        // 3. Stock Management
+        async function fetchFlavors() {
+            const { data, error } = await supabase
+                .from('flavors')
+                .select('*')
+                .order('brand', { ascending: true });
+
+            if (error) {
+                console.error("Flavors query failed:", error);
+                return;
+            }
+
+            allFlavors = data || [];
+            updateKPIs();
+            renderStockUI(allFlavors);
+        }
+
+        function renderStockUI(flavors) {
+            const tbody = document.getElementById('stockTableBody');
+            tbody.innerHTML = flavors.map(flavor => `
+                <tr class="hover:bg-gray-900/40 transition-colors">
+                    <td class="px-5 py-4">
+                        <div class="font-black text-white">${flavor.name}</div>
+                        <div class="text-xs font-semibold text-mama uppercase tracking-wider">${flavor.brand}</div>
+                    </td>
+                    <td class="px-5 py-4 text-xs text-gray-400 max-w-xs truncate">
+                        ${flavor.flavor_notes || flavor.profile || "—"}
+                    </td>
+                    <td class="px-5 py-4">
+                        <span class="text-xs font-bold px-2 py-1 rounded bg-gray-800 text-gray-300">
+                            ${flavor.strength}/10
+                        </span>
+                    </td>
+                    <td class="px-5 py-4 text-right">
+                        <button 
+                            onclick="toggleFlavorStock(${flavor.id}, ${flavor.in_stock})" 
+                            class="px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+                                flavor.in_stock 
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30' 
+                                : 'bg-mama/10 text-mama border border-mama/30 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30'
+                            }">
+                            ${flavor.in_stock ? 'В наличии ●' : 'Закончился ○'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function toggleFlavorStock(flavorId, currentStatus) {
+            const { error } = await supabase
+                .from('flavors')
+                .update({ in_stock: !currentStatus })
+                .eq('id', flavorId);
+
+            if (error) {
+                alert("Ошибка обновления наличия!");
+                console.error(error);
+                return;
+            }
+            fetchFlavors();
+        }
+
+        function filterStockTable() {
+            const query = document.getElementById('stockSearchInput').value.toLowerCase();
+            const filtered = allFlavors.filter(f => 
+                f.name.toLowerCase().includes(query) || 
+                f.brand.toLowerCase().includes(query)
+            );
+            renderStockUI(filtered);
+        }
+
+        // 4. KPIs and Real-time listener
+        function updateKPIs() {
+            const pending = allOrders.filter(o => o.status !== 'served').length;
+            const served = allOrders.filter(o => o.status === 'served').length;
+            const outOfStock = allFlavors.filter(f => !f.in_stock).length;
+
+            document.getElementById('statPending').innerText = pending;
+            document.getElementById('activeCountBadge').innerText = pending;
+            document.getElementById('statServed').innerText = served;
+            document.getElementById('statOutOfStock').innerText = outOfStock;
+        }
+
+        // 5. Init & Live Polling (5 seconds)
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchOrders();
+            fetchFlavors();
+            setInterval(fetchOrders, 5000);
+        });
+    </script>
 </body>
 </html>
