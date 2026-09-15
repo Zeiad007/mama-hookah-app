@@ -47,6 +47,11 @@ function switchTab(activeTab) {
         activeBtn.classList.remove('text-gray-300');
         activeBtn.classList.add('text-mama');
     }
+
+    // Refresh history from database when opening the tab
+    if (activeTab === 'history') {
+        loadOrderHistoryFromDB();
+    }
 }
 
 // 4. Table Detection & Deep Linking
@@ -279,6 +284,68 @@ if (logoImage) {
         }
     });
 }
+
+// 9.5 Live Order History from Supabase
+async function loadOrderHistoryFromDB() {
+    const container = document.getElementById('historyContainer');
+    if (!container) return;
+
+    container.innerHTML = `<p class="text-sm text-gray-400 text-center mt-10">Загрузка истории...</p>`;
+
+    let query = supabaseClient
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+    // If inside Telegram, filter by guest ID; otherwise show recent table orders
+    if (user.id) {
+        query = query.eq('guest_telegram_id', user.id);
+    }
+
+    const { data: orders, error } = await query;
+
+    if (error || !orders || orders.length === 0) {
+        container.innerHTML = `<div class="text-center text-sm text-gray-400 mt-10">У вас пока нет сохраненных заказов.</div>`;
+        return;
+    }
+
+    container.innerHTML = orders.map((order) => {
+        const dateStr = new Date(order.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+        return `
+            <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${dateStr} · Стол #${order.table_number}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${order.status === 'served' ? 'bg-green-50 text-green-600' : 'bg-mama/10 text-mama'}">
+                        ${order.status === 'served' ? 'Подан' : 'Готовится'}
+                    </span>
+                </div>
+                
+                <div class="space-y-1 mb-3">
+                    <p class="text-xs font-bold text-gray-800"><span class="text-mama mr-1">60%</span> ${order.base_flavor}</p>
+                    <p class="text-xs font-bold text-gray-800"><span class="text-mama mr-1">30%</span> ${order.accent_flavor}</p>
+                    <p class="text-xs font-bold text-gray-800"><span class="text-gray-400 mr-1">10%</span> ${order.shade_flavor || "Без оттенка"}</p>
+                </div>
+                
+                <div class="flex justify-between items-center pt-2 border-t border-gray-50">
+                    <span class="text-[10px] font-bold text-gray-400">Чаша: ${order.bowl_type}</span>
+                    <button onclick="reorderSavedMix('${order.base_flavor}', '${order.accent_flavor}', '${order.shade_flavor}', '${order.bowl_type}')" class="text-xs font-black text-mama bg-mama/10 hover:bg-mama hover:text-white px-3 py-1.5 rounded-lg transition-colors">
+                        Повторить ↻
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+window.reorderSavedMix = function(base, accent, shade, bowl) {
+    document.getElementById('baseSelect').value = base;
+    document.getElementById('accentSelect').value = accent;
+    document.getElementById('adjSelect').value = shade;
+    document.getElementById('bowlSelect').value = bowl;
+    switchTab('mixlab');
+    if (tg.showAlert) tg.showAlert("Микс скопирован в конструктор!");
+};
 
 // 10. Bootstrap Application
 document.addEventListener("DOMContentLoaded", () => {
