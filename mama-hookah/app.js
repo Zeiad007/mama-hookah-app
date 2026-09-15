@@ -165,6 +165,7 @@ window.sendMixOrder = async function() {
     const adj = document.getElementById('adjSelect').value;
     const bowl = document.getElementById('bowlSelect').value;
     const tableNum = document.getElementById('mixTableNum').value;
+    const notes = document.getElementById('mixNotes')?.value || ""; // <-- 1. ADD THIS LINE
 
     if (!tableNum || isNaN(parseInt(tableNum, 10))) {
         alert("Пожалуйста, укажите корректный номер стола!");
@@ -186,6 +187,7 @@ window.sendMixOrder = async function() {
         base_flavor: base,
         accent_flavor: accent,
         shade_flavor: adj,
+        notes: notes, // <-- 2. ADD THIS LINE
         status: 'pending'
     }]);
 
@@ -208,7 +210,8 @@ window.sendMixOrder = async function() {
     userLoyalty.points = updatedBalance;
     initPassport();
 
-    trackGuestAction(`Заказал микс (+15 Б):\nЧаша: ${bowl}\n60%: ${base}\n30%: ${accent}\n10%: ${adj}`);
+    const orderDesc = `Заказал микс (+15 Б):\nЧаша: ${bowl}\n60%: ${base}\n30%: ${accent}\n10%: ${adj}${notes ? `\nПожелание: "${notes}"` : ""}`;
+    trackGuestAction(orderDesc);
     
     if (tg.showAlert) {
         tg.showAlert(`✅ Заказ принят для стола #${tableNum}! Начислено +15 баллов.`);
@@ -403,13 +406,19 @@ async function loadOrderHistoryFromDB() {
                     <p class="text-xs font-bold text-gray-800"><span class="text-gray-400 mr-1">10%</span> ${order.shade_flavor || "Без оттенка"}</p>
                 </div>
                 
-                <div class="flex justify-between items-center pt-2 border-t border-gray-50">
+                <div class="flex justify-between items-center pt-2 border-t border-gray-50 gap-2">
                     <span class="text-[10px] font-bold text-gray-400">Чаша: ${order.bowl_type}</span>
-                    <button onclick="reorderSavedMix('${order.base_flavor}', '${order.accent_flavor}', '${order.shade_flavor}', '${order.bowl_type}')" class="text-xs font-black text-mama bg-mama/10 hover:bg-mama hover:text-white px-3 py-1.5 rounded-lg transition-colors">
-                        Повторить ↻
-                    </button>
+                    <div class="flex items-center gap-1.5">
+                        ${order.status === 'served' ? `
+                            <button onclick="submitOrderFeedback(${order.id})" class="text-xs font-bold text-gray-600 hover:text-mama bg-gray-50 hover:bg-mama/10 border border-gray-200 px-2.5 py-1.5 rounded-lg transition-colors">
+                                ${order.review ? 'Отзыв ★' : 'Оценить ★'}
+                            </button>
+                        ` : ''}
+                        <button onclick="reorderSavedMix('${order.base_flavor}', '${order.accent_flavor}', '${order.shade_flavor}', '${order.bowl_type}')" class="text-xs font-black text-mama bg-mama/10 hover:bg-mama hover:text-white px-3 py-1.5 rounded-lg transition-colors">
+                            Повторить ↻
+                        </button>
+                    </div>
                 </div>
-            </div>
         `;
     }).join('');
 }
@@ -433,3 +442,56 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("gatekeeperScreen")?.classList.add("hidden");
     }
 });
+
+// Master Call Functions
+window.openCallMasterModal = function() {
+    document.getElementById('callMasterModal')?.classList.remove('hidden');
+};
+
+window.closeCallMasterModal = function() {
+    document.getElementById('callMasterModal')?.classList.add('hidden');
+};
+
+window.sendMasterCall = async function(reason) {
+    const tableNum = document.getElementById('mixTableNum')?.value || "Неизвестно";
+    const guestName = user.first_name || "Гость";
+    const guestHandle = user.username ? `(@${user.username})` : "";
+    
+    const message = `🚨 <b>ВЫЗОВ К СТОЛУ #${tableNum}!</b>\nПричина: <b>${reason}</b>\nГость: ${guestName} ${guestHandle}`;
+    const botToken = "8275821967:AAGpG0A79SsYU5bGT3itRmo0iUGMaYhSd9o";
+    const masterChatId = "8062455176";
+
+    try {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: masterChatId, text: message, parse_mode: "HTML" })
+        });
+        closeCallMasterModal();
+        if (tg.showAlert) tg.showAlert("Мастер уведомлен и уже идет к вам!"); else alert("Мастер уведомлен и уже идет к вам!");
+    } catch (e) {
+        alert("Не удалось отправить вызов. Пожалуйста, позовите мастера лично.");
+    }
+};
+
+// Post-Order Review Function
+window.submitOrderFeedback = async function(orderId) {
+    const rating = prompt("Оцените кальян и работу мастера от 1 до 5:", "5");
+    if (!rating) return;
+    const reviewText = prompt("Напишите пару слов о миксе и мастере (что понравилось / улучшить):");
+    if (!reviewText) return;
+
+    const { error } = await supabaseClient
+        .from('orders')
+        .update({ rating: parseInt(rating, 10), review: reviewText })
+        .eq('id', orderId);
+
+    if (error) {
+        alert("Не удалось сохранить отзыв.");
+        return;
+    }
+
+    trackGuestAction(`Оставил отзыв на заказ #${orderId} (${rating}⭐): "${reviewText}"`);
+    if (tg.showAlert) tg.showAlert("Спасибо за обратную связь!"); else alert("Спасибо за обратную связь!");
+    loadOrderHistoryFromDB();
+};

@@ -124,12 +124,48 @@
     <script>
         const SUPABASE_URL = "https://piukdhvjshkrikapvnbn.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpdWtkaHZqc2hrcmlrYXB2bmJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0ODk4NDksImV4cCI6MjEwNTA2NTg0OX0.1xrBJ8ni3U6qGp3_Q245qT9ddRL9dcG-2L_OYRvQWAs";
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const BOT_TOKEN = "8275821967:AAGpG0A79SsYU5bGT3itRmo0iUGMaYhSd9o";
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let allFlavors = [];
         let allOrders = [];
+        let previousPendingCount = null;
 
-        // 1. Tab Switching
+        // Sound chime generator using Web Audio API (no external mp3 files needed)
+        function playAlertSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.6);
+            } catch (e) {
+                console.log("Audio waiting for user gesture");
+            }
+        }
+
+        // Notify guest in private chat via Telegram Bot
+        async function notifyGuestViaBot(guestTelegramId, textMessage) {
+            if (!guestTelegramId) return;
+            try {
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chat_id: guestTelegramId, text: textMessage })
+                });
+            } catch (err) {
+                console.warn("Could not reach guest in Telegram:", err);
+            }
+        }
+
         function switchAdminView(view) {
             document.getElementById('view-orders').classList.toggle('hidden', view !== 'orders');
             document.getElementById('view-stock').classList.toggle('hidden', view !== 'stock');
@@ -146,12 +182,12 @@
             }
         }
 
-        // 2. Fetch & Render Orders
         async function fetchOrders() {
-            const { data, error } = await supabase
+            const container = document.getElementById('ordersContainer');
+            const { data, error } = await supabaseClient
                 .from('orders')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('id', { ascending: false });
 
             if (error) {
                 console.error("Orders query failed:", error);
@@ -159,9 +195,19 @@
             }
 
             allOrders = data || [];
+            
+            // Trigger audio alert if new pending order arrived
+            const currentPending = allOrders.filter(o => o.status === 'pending').length;
+            if (previousPendingCount !== null && currentPending > previousPendingCount) {
+                playAlertSound();
+            }
+            previousPendingCount = currentPending;
+
             updateKPIs();
             renderOrdersUI();
-            document.getElementById('lastUpdated').innerText = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            const timeStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('lastUpdated').innerText = `Обновлено в ${timeStr}`;
         }
 
         function renderOrdersUI() {
@@ -172,12 +218,13 @@
             }
 
             container.innerHTML = allOrders.map(order => {
-                const time = new Date(order.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const time = order.created_at ? new Date(order.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '—';
                 const isPending = order.status === 'pending';
+                const isPreparing = order.status === 'preparing';
                 const isServed = order.status === 'served';
 
                 return `
-                    <div class="bg-cardBg border ${isPending ? 'border-amber-500/40 shadow-lg shadow-amber-500/5' : 'border-gray-800'} rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                    <div class="bg-cardBg border ${isPending ? 'border-amber-500/40 shadow-lg shadow-amber-500/5' : isPreparing ? 'border-blue-500/40' : 'border-gray-800'} rounded-2xl p-5 flex flex-col justify-between space-y-4">
                         <div>
                             <div class="flex justify-between items-start mb-3">
                                 <div>
@@ -186,10 +233,11 @@
                                 </div>
                                 <span class="text-[11px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider ${
                                     isPending ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 
+                                    isPreparing ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
                                     isServed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
                                     'bg-gray-800 text-gray-400'
                                 }">
-                                    ${isPending ? 'Ожидает' : isServed ? 'Подан' : 'Готовится'}
+                                    ${isPending ? 'Ожидает' : isPreparing ? 'Готовится' : 'Подан'}
                                 </span>
                             </div>
 
@@ -206,27 +254,37 @@
                                     <span class="text-xs font-bold px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">10%</span>
                                     <span class="text-gray-400 font-semibold">${order.shade_flavor || "Без оттенка"}</span>
                                 </div>
-                                <div class="pt-2 border-t border-gray-800 text-xs text-gray-400 flex justify-between">
+                                <div class="pt-2 border-t border-gray-800 text-xs text-gray-400 flex justify-between items-center">
                                     <span>Чаша: <b class="text-gray-200">${order.bowl_type}</b></span>
                                 </div>
+                                ${order.notes ? `
+                                    <div class="mt-2 bg-amber-500/10 border border-amber-500/20 text-amber-300 p-2 rounded-lg text-xs">
+                                        💬 <b>Комментарий гостя:</b> "${order.notes}"
+                                    </div>
+                                ` : ''}
+                                ${order.review ? `
+                                    <div class="mt-2 bg-purple-500/10 border border-purple-500/20 text-purple-300 p-2 rounded-lg text-xs">
+                                        ⭐ <b>Отзыв (${order.rating || 5}/5):</b> "${order.review}"
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="grid grid-cols-2 gap-2 pt-1">
                             ${isPending ? `
-                                <button onclick="updateOrderStatus(${order.id}, 'preparing')" class="bg-gray-800 hover:bg-gray-700 text-amber-400 border border-amber-500/30 font-bold py-2 rounded-xl text-xs transition-colors">
+                                <button onclick="updateOrderStatus(${order.id}, 'preparing', '${order.guest_telegram_id}', ${order.table_number})" class="bg-gray-800 hover:bg-gray-700 text-blue-400 border border-blue-500/30 font-bold py-2 rounded-xl text-xs transition-colors">
                                     В работу 🔨
                                 </button>
-                                <button onclick="updateOrderStatus(${order.id}, 'served')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors">
+                                <button onclick="updateOrderStatus(${order.id}, 'served', '${order.guest_telegram_id}', ${order.table_number})" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors">
                                     Подан ✅
                                 </button>
-                            ` : !isServed ? `
-                                <button onclick="updateOrderStatus(${order.id}, 'served')" class="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors">
+                            ` : isPreparing ? `
+                                <button onclick="updateOrderStatus(${order.id}, 'served', '${order.guest_telegram_id}', ${order.table_number})" class="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs transition-colors">
                                     Отметить как Подан ✅
                                 </button>
                             ` : `
-                                <button onclick="updateOrderStatus(${order.id}, 'pending')" class="col-span-2 bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold py-1.5 rounded-xl text-xs transition-colors">
+                                <button onclick="updateOrderStatus(${order.id}, 'pending', '${order.guest_telegram_id}', ${order.table_number})" class="col-span-2 bg-gray-800 hover:bg-gray-700 text-gray-400 font-bold py-1.5 rounded-xl text-xs transition-colors">
                                     Вернуть в работу ↻
                                 </button>
                             `}
@@ -236,32 +294,36 @@
             }).join('');
         }
 
-        async function updateOrderStatus(orderId, newStatus) {
-            const { error } = await supabase
+        async function updateOrderStatus(orderId, newStatus, guestTgId, tableNum) {
+            const { error } = await supabaseClient
                 .from('orders')
                 .update({ status: newStatus })
                 .eq('id', orderId);
 
             if (error) {
-                alert("Ошибка обновления статуса!");
-                console.error(error);
+                alert("Ошибка обновления статуса: " + error.message);
                 return;
             }
+
+            // Send notification straight to the guest's Telegram chat
+            if (guestTgId && guestTgId !== "null") {
+                if (newStatus === 'preparing') {
+                    notifyGuestViaBot(guestTgId, `👨‍🍳 Стол #${tableNum}: Кальянный мастер начал готовить ваш микс! Скоро вынесем.`);
+                } else if (newStatus === 'served') {
+                    notifyGuestViaBot(guestTgId, `💨 Стол #${tableNum}: Ваш кальян готов и подан! Приятного покура.\nОставить отзыв мастеру можно во вкладке "История" в приложении.`);
+                }
+            }
+
             fetchOrders();
         }
 
-        // 3. Stock Management
         async function fetchFlavors() {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('flavors')
                 .select('*')
                 .order('brand', { ascending: true });
 
-            if (error) {
-                console.error("Flavors query failed:", error);
-                return;
-            }
-
+            if (error) return;
             allFlavors = data || [];
             updateKPIs();
             renderStockUI(allFlavors);
@@ -269,28 +331,20 @@
 
         function renderStockUI(flavors) {
             const tbody = document.getElementById('stockTableBody');
+            if (!tbody) return;
+
             tbody.innerHTML = flavors.map(flavor => `
                 <tr class="hover:bg-gray-900/40 transition-colors">
                     <td class="px-5 py-4">
                         <div class="font-black text-white">${flavor.name}</div>
                         <div class="text-xs font-semibold text-mama uppercase tracking-wider">${flavor.brand}</div>
                     </td>
-                    <td class="px-5 py-4 text-xs text-gray-400 max-w-xs truncate">
-                        ${flavor.flavor_notes || flavor.profile || "—"}
-                    </td>
+                    <td class="px-5 py-4 text-xs text-gray-400 max-w-xs truncate">${flavor.flavor_notes || flavor.profile || "—"}</td>
                     <td class="px-5 py-4">
-                        <span class="text-xs font-bold px-2 py-1 rounded bg-gray-800 text-gray-300">
-                            ${flavor.strength}/10
-                        </span>
+                        <span class="text-xs font-bold px-2 py-1 rounded bg-gray-800 text-gray-300">${flavor.strength}/10</span>
                     </td>
                     <td class="px-5 py-4 text-right">
-                        <button 
-                            onclick="toggleFlavorStock(${flavor.id}, ${flavor.in_stock})" 
-                            class="px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
-                                flavor.in_stock 
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30' 
-                                : 'bg-mama/10 text-mama border border-mama/30 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/30'
-                            }">
+                        <button onclick="toggleFlavorStock(${flavor.id}, ${flavor.in_stock})" class="px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${flavor.in_stock ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-mama/10 text-mama border border-mama/30'}">
                             ${flavor.in_stock ? 'В наличии ●' : 'Закончился ○'}
                         </button>
                     </td>
@@ -299,29 +353,16 @@
         }
 
         async function toggleFlavorStock(flavorId, currentStatus) {
-            const { error } = await supabase
-                .from('flavors')
-                .update({ in_stock: !currentStatus })
-                .eq('id', flavorId);
-
-            if (error) {
-                alert("Ошибка обновления наличия!");
-                console.error(error);
-                return;
-            }
+            await supabaseClient.from('flavors').update({ in_stock: !currentStatus }).eq('id', flavorId);
             fetchFlavors();
         }
 
         function filterStockTable() {
             const query = document.getElementById('stockSearchInput').value.toLowerCase();
-            const filtered = allFlavors.filter(f => 
-                f.name.toLowerCase().includes(query) || 
-                f.brand.toLowerCase().includes(query)
-            );
+            const filtered = allFlavors.filter(f => f.name.toLowerCase().includes(query) || f.brand.toLowerCase().includes(query));
             renderStockUI(filtered);
         }
 
-        // 4. KPIs and Real-time listener
         function updateKPIs() {
             const pending = allOrders.filter(o => o.status !== 'served').length;
             const served = allOrders.filter(o => o.status === 'served').length;
@@ -333,7 +374,6 @@
             document.getElementById('statOutOfStock').innerText = outOfStock;
         }
 
-        // 5. Init & Live Polling (5 seconds)
         document.addEventListener("DOMContentLoaded", () => {
             fetchOrders();
             fetchFlavors();
