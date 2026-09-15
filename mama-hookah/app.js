@@ -2,7 +2,7 @@
 const SUPABASE_URL = "https://piukdhvjshkrikapvnbn.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_dq8-Jy0YxUFXWosTQHvoaA_SHLIUctL"; // Click the copy icon next to Publishable key
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 1. Initialize Telegram SDK
 const tg = window.Telegram.WebApp;
@@ -408,7 +408,7 @@ function initTableNumber() {
 
 // Fetch active flavors from Supabase and populate UI
 async function loadFlavorsFromDB() {
-    const { data: flavors, error } = await supabase
+    const { data: flavors, error } = await supabaseClient
         .from('flavors')
         .select('*')
         .eq('in_stock', true);
@@ -442,7 +442,7 @@ window.forcePhoneLogin = function() {
                 const contactData = tg.initDataUnsafe?.user?.phone_number || "Shared via Bot";
 
                 // Save to Supabase
-                const { error } = await supabase.from('guests').upsert({
+                const { error } = await supabaseClient.from('guests').upsert({
                     telegram_id: tgUser.id,
                     first_name: tgUser.first_name || 'Гость',
                     username: tgUser.username || null,
