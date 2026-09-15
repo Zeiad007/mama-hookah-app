@@ -46,19 +46,27 @@
 
     <div class="mobile-wrapper">
         <!-- Top Header -->
-        <header class="p-4 bg-white border-b border-gray-100 flex justify-between items-center z-10">
-            <div>
-                <!-- Your custom image logo -->
-                <img src="mama-logo-header.png" alt="Mama Hookah" class="h-8 object-contain mb-1">
-                <p class="text-[10px] text-gray-500 font-medium">Академика Парина 41</p>
-            </div>
-            <div class="text-right">
-                <p id="userName" class="text-sm font-bold text-gray-800">Гость</p>
-                <div class="bg-mama/10 text-mama text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-1 inline-block">
-                    СТОЛ: <span id="tableDisplay">--</span>
+        <!-- Top Header -->
+        <header class="p-4 bg-white border-b border-gray-100 sticky top-0 z-40">
+            <div class="flex justify-between items-center mb-3">
+                <div>
+                 <!-- Your custom image logo -->
+                 <img src="mama-logo-header.png" alt="Mama Hookah" class="h-8 object-contain cursor-pointer">
+                 <p class="text-[10px] text-gray-500 font-medium">Академика Парина 41</p>
                 </div>
+                <div class="text-right">
+                  <p id="userName" class="text-sm font-bold text-gray-800">Гость</p>
+                  <div class="bg-mama/10 text-mama text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block">
+                      СТОЛ: <span id="tableDisplay">--</span>
+                  </div>
+              </div>
             </div>
-        </header>
+
+        <!-- Quick Call Button -->
+        <button type="button" onclick="openCallMasterModal()" class="w-full bg-mama/10 hover:bg-mama hover:text-white text-mama border border-mama/20 text-xs font-black py-2 rounded-xl flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all">
+            <span>🔔</span> Позвать мастера к столу
+        </button>
+    </header>
 
         <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto p-4 pb-24 relative bg-gray-50">
@@ -243,26 +251,69 @@
                     <p class="text-sm text-gray-400 text-center mt-10">Загрузка истории...</p>
                 </div>
             </section>
+             <!-- VIEW 5: Feedback & Review Screen -->
+                <section id="view-review" class="space-y-4 hidden pb-24">
+                    <div class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm space-y-4">
+                        <div>
+                            <h2 class="text-lg font-black text-gray-900">Оценить кальян</h2>
+                            <p class="text-xs text-gray-400 mt-0.5">Помогите нам стать лучше или похвалите мастера</p>
+                        </div>
 
+                        <!-- Star Rating Widget -->
+                        <div class="flex justify-center gap-2 py-2" id="starContainer">
+                            <button type="button" onclick="setFeedbackRating(1)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
+                            <button type="button" onclick="setFeedbackRating(2)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
+                            <button type="button" onclick="setFeedbackRating(3)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
+                            <button type="button" onclick="setFeedbackRating(4)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
+                            <button type="button" onclick="setFeedbackRating(5)" class="star-btn text-3xl text-amber-400 transition-transform active:scale-125">★</button>
+                        </div>
+
+                        <!-- Quick Compliments Pills -->
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Что понравилось больше всего?</label>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">💨 Много дыма</button>
+                                <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">🍓 Точный вкус</button>
+                                <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">⚡ Быстрая подача</button>
+                                <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">👨‍🍳 Топовый мастер</button>
+                            </div>
+                        </div>
+
+                        <!-- Freeform Text Comment -->
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Ваш комментарий</label>
+                            <textarea id="feedbackComment" rows="3" placeholder="Что мастер сделал круто или что стоило улучшить..." class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-mama resize-none"></textarea>
+                        </div>
+
+                        <button onclick="submitGuestFeedback()" class="w-full bg-mama hover:bg-red-600 text-white font-extrabold py-3.5 rounded-2xl text-xs tracking-wider shadow-lg shadow-mama/25 active:scale-[0.98] transition-all">
+                            Отправить отзыв
+                        </button>
+                    </div>
+                </section>
         </main>
 
         <!-- Bottom Navigation Bar -->
-        <nav class="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around p-3 pb-6 z-20">
-            <button onclick="switchTab('shelf')" id="tab-shelf" class="text-mama flex flex-col items-center transition-colors">
-                <span class="text-xl">📋</span>
-                <span class="text-[10px] font-bold mt-1">Меню</span>
+        <!-- Bottom Navigation (5 Tabs) -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 py-2 flex justify-around items-center z-40 max-w-md mx-auto">
+            <button onclick="switchTab('shelf')" id="tab-shelf" class="flex flex-col items-center flex-1 py-1 text-mama transition-colors">
+                <span class="text-lg">📋</span>
+                <span class="text-[10px] font-bold mt-0.5">Меню</span>
             </button>
-            <button onclick="switchTab('mixlab')" id="tab-mixlab" class="text-gray-300 hover:text-gray-400 flex flex-col items-center transition-colors">
-                <span class="text-xl">🧪</span>
-                <span class="text-[10px] font-bold mt-1">Микс</span>
+            <button onclick="switchTab('mixlab')" id="tab-mixlab" class="flex flex-col items-center flex-1 py-1 text-gray-300 transition-colors">
+                <span class="text-lg">🧪</span>
+                <span class="text-[10px] font-bold mt-0.5">Микс</span>
             </button>
-            <button onclick="switchTab('passport')" id="tab-passport" class="text-gray-300 hover:text-gray-400 flex flex-col items-center transition-colors">
-                <span class="text-xl">🎁</span>
-                <span class="text-[10px] font-bold mt-1">Баллы</span>
+            <button onclick="switchTab('passport')" id="tab-passport" class="flex flex-col items-center flex-1 py-1 text-gray-300 transition-colors">
+                <span class="text-lg">🎁</span>
+                <span class="text-[10px] font-bold mt-0.5">Баллы</span>
             </button>
-            <button onclick="switchTab('history')" id="tab-history" class="text-gray-300 hover:text-gray-400 flex flex-col items-center transition-colors">
-                <span class="text-xl">⏳</span>
-                <span class="text-[10px] font-bold mt-1">История</span>
+            <button onclick="switchTab('history')" id="tab-history" class="flex flex-col items-center flex-1 py-1 text-gray-300 transition-colors">
+                <span class="text-lg">⏳</span>
+                <span class="text-[10px] font-bold mt-0.5">История</span>
+            </button>
+            <button onclick="switchTab('review')" id="tab-review" class="flex flex-col items-center flex-1 py-1 text-gray-300 transition-colors">
+                <span class="text-lg">⭐</span>
+                <span class="text-[10px] font-bold mt-0.5">Отзыв</span>
             </button>
         </nav>
     </div>

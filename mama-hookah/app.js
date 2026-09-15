@@ -30,7 +30,7 @@ function trackGuestAction(actionDescription) {
 }
 
 // 3. Tab Navigation Logic
-const tabs = ['shelf', 'mixlab', 'passport', 'history'];
+const tabs = ['shelf', 'mixlab', 'passport', 'history', 'review'];
 function switchTab(activeTab) {
     tabs.forEach(tab => {
         document.getElementById(`view-${tab}`)?.classList.add('hidden');
@@ -430,6 +430,88 @@ window.reorderSavedMix = function(base, accent, shade, bowl) {
     document.getElementById('bowlSelect').value = bowl;
     switchTab('mixlab');
     if (tg.showAlert) tg.showAlert("Микс скопирован в конструктор!");
+};
+
+// ==========================================
+// 10.5 Feedback & Review Logic
+// ==========================================
+let currentRating = 5;
+let selectedTags = [];
+
+window.setFeedbackRating = function(rating) {
+    currentRating = rating;
+    const stars = document.querySelectorAll('#starContainer .star-btn');
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.remove('text-gray-200');
+            star.classList.add('text-amber-400');
+        } else {
+            star.classList.remove('text-amber-400');
+            star.classList.add('text-gray-200');
+        }
+    });
+};
+
+window.toggleTag = function(button) {
+    const text = button.innerText;
+    if (selectedTags.includes(text)) {
+        selectedTags = selectedTags.filter(t => t !== text);
+        button.classList.remove('bg-mama', 'text-white', 'border-transparent');
+        button.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-200');
+    } else {
+        selectedTags.push(text);
+        button.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-200');
+        button.classList.add('bg-mama', 'text-white', 'border-transparent');
+    }
+};
+
+window.submitGuestFeedback = async function() {
+    const comment = document.getElementById('feedbackComment')?.value.trim() || "";
+    const tableNum = document.getElementById('mixTableNum')?.value || "Неизвестно";
+    const fullReviewText = `${selectedTags.join(', ')}${comment ? ` — "${comment}"` : ''}`;
+
+    // Find the guest's latest served order to attach the review
+    let query = supabaseClient
+        .from('orders')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+    if (user.id) {
+        query = query.eq('guest_telegram_id', user.id);
+    }
+
+    const { data: latestOrders } = await query;
+    if (latestOrders && latestOrders.length > 0) {
+        await supabaseClient
+            .from('orders')
+            .update({ rating: currentRating, review: fullReviewText })
+            .eq('id', latestOrders[0].id);
+    }
+
+    // Alert Master via Telegram
+    const guestName = user.first_name || "Гость";
+    const alertMsg = `⭐ <b>НОВЫЙ ОТЗЫВ (Стол #${tableNum})</b>\nОценка: ${'⭐'.repeat(currentRating)}\nГость: ${guestName}\nОтзыв: ${fullReviewText}`;
+    
+    fetch(`https://api.telegram.org/bot8275821967:AAGpG0A79SsYU5bGT3itRmo0iUGMaYhSd9o/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: "8062455176", text: alertMsg, parse_mode: "HTML" })
+    }).catch(e => console.log(e));
+
+    // Reset UI fields
+    const commentInput = document.getElementById('feedbackComment');
+    if (commentInput) commentInput.value = "";
+    selectedTags = [];
+    document.querySelectorAll('.review-tag').forEach(b => {
+        b.classList.remove('bg-mama', 'text-white', 'border-transparent');
+        b.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-200');
+    });
+
+    if (tg.showAlert) tg.showAlert("Спасибо за отзыв! Вам начислено +5 баллов.");
+    else alert("Спасибо за отзыв! Вам начислено +5 баллов.");
+
+    switchTab('shelf');
 };
 
 // 11. Bootstrap Application
