@@ -86,9 +86,10 @@ const defaultCatalog = [
     { brand: "Deus", name: "Pomegranate Morse", strength: 7, flavor_notes: "Натуральный терпкий гранатовый морс.", tag: "Ягодный" }
 ];
 
-function renderCatalog(items) {
+function renderCatalog(items = allFlavors) {
     const container = document.getElementById('catalogContainer');
-    if (!container) return;
+    if (!container || !items || !Array.isArray(items)) return;
+    
     container.innerHTML = items.map(item => `
         <div class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col">
             <div class="flex justify-between items-start mb-1">
@@ -123,39 +124,131 @@ function filterMenu(brandName, buttonElement) {
     }
 }
 
-async function loadFlavorsFromDB() {
-    let flavors = [];
+// Instant catalog loading via local cache + background sync
+async function fetchFlavors() {
+    // 1. Instant Render from Cache (0 ms delay)
+    const cachedFlavors = localStorage.getItem("mama_cached_flavors");
+    if (cachedFlavors) {
+        try {
+            allFlavors = JSON.parse(cachedFlavors);
+            renderCatalog(allFlavors);
+            if (typeof populateMixSelects === "function") {
+                populateMixSelects();
+            }
+        } catch (e) {
+            console.error("Cache read error:", e);
+        }
+    }
+
+    // 2. Background fetch for live stock updates
     try {
         const { data, error } = await supabaseClient
             .from('flavors')
             .select('*')
-            .eq('in_stock', true);
+            .order('brand', { ascending: true });
 
-        if (error || !data || data.length === 0) {
-            console.warn('Database offline or empty. Using fallback.');
-            flavors = defaultCatalog;
-        } else {
-            flavors = data;
+        if (error) {
+            console.error("Supabase fetch failed:", error);
+            return;
+        }
+
+        if (data && data.length > 0) {
+            allFlavors = data;
+            // Update cache with latest data
+            localStorage.setItem("mama_cached_flavors", JSON.stringify(data));
+            // Re-render UI with fresh availability
+            renderCatalog(allFlavors);
+            if (typeof populateMixSelects === "function") {
+                populateMixSelects();
+            }
         }
     } catch (err) {
-        console.warn('Network error. Using fallback.');
-        flavors = defaultCatalog;
+        console.error("Network error during flavor sync:", err);
+    }
+}
+
+// Instant catalog loading via local cache + background sync
+async function fetchFlavors() {
+    // 1. Instant Render from Cache (0 ms delay)
+    const cachedFlavors = localStorage.getItem("mama_cached_flavors");
+    if (cachedFlavors) {
+        try {
+            allFlavors = JSON.parse(cachedFlavors);
+            renderCatalog(allFlavors);
+              if (typeof populateMixSelects === "function") {
+                populateMixSelects();
+            }
+        } catch (e) {
+            console.error("Cache read error:", e);
+        }
     }
 
-    liveCatalog = flavors;
-    renderCatalog(liveCatalog);
+    // 2. Background fetch for live stock updates
+    try {
+        const { data, error } = await supabaseClient
+            .from('flavors')
+            .select('*')
+            .order('brand', { ascending: true });
+
+        if (error) {
+            console.error("Supabase fetch failed:", error);
+            return;
+        }
+
+        if (data && data.length > 0) {
+            allFlavors = data;
+            // Update cache with latest data
+            localStorage.setItem("mama_cached_flavors", JSON.stringify(data));
+            // Re-render UI with fresh availability
+            renderCatalog(allFlavors);
+            if (typeof populateMixSelects === "function") {
+                populateMixSelects();
+            }
+        }
+    } catch (err) {
+        console.error("Network error during flavor sync:", err);
+    }
+}
+
+// Populate the Mix Lab select dropdowns
+function populateMixSelects() {
+    if (!allFlavors || allFlavors.length === 0) return;
 
     const baseSelect = document.getElementById('baseSelect');
     const accentSelect = document.getElementById('accentSelect');
     const adjSelect = document.getElementById('adjSelect');
 
-    const optionsHtml = flavors.map(f => 
-        `<option value="${f.brand} - ${f.name}">${f.brand} — ${f.name} (${f.strength}/10)</option>`
-    ).join('');
+    if (!baseSelect || !accentSelect || !adjSelect) return;
 
-    if (baseSelect) baseSelect.innerHTML = `<option value="" disabled selected>Выберите вкус...</option>` + optionsHtml;
-    if (accentSelect) accentSelect.innerHTML = `<option value="" disabled selected>Выберите вкус...</option>` + optionsHtml;
-    if (adjSelect) adjSelect.innerHTML = `<option value="Без оттенка" selected>Без оттенка (0%)</option>` + optionsHtml;
+    // Group flavors alphabetically by brand
+    const brandMap = {};
+    allFlavors.forEach(f => {
+        const brand = f.brand || 'Разное';
+        if (!brandMap[brand]) brandMap[brand] = [];
+        brandMap[brand].push(f);
+    });
+
+    let optionsMarkup = '<option value="" disabled selected>Выберите вкус...</option>';
+    
+    Object.keys(brandMap).sort().forEach(brand => {
+        optionsMarkup += `<optgroup label="${brand}">`;
+        brandMap[brand]
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+            .forEach(f => {
+                optionsMarkup += `<option value="${f.name} (${brand})">${f.name}</option>`;
+            });
+        optionsMarkup += `</optgroup>`;
+    });
+
+    // Populate Base (60%) and Accent (30%)
+    baseSelect.innerHTML = optionsMarkup;
+    accentSelect.innerHTML = optionsMarkup;
+
+    // Populate Shade (10%) with default "Без оттенка" option
+    adjSelect.innerHTML = `
+        <option value="Без оттенка" selected>Без оттенка (0%)</option>
+        ${optionsMarkup.replace('<option value="" disabled selected>Выберите вкус...</option>', '')}
+    `;
 }
 
 // 6. Order Submission with +15 Cashback Points
@@ -515,9 +608,11 @@ window.submitGuestFeedback = async function() {
 };
 
 // 11. Bootstrap Application
+window.loadFlavorsFromDB = fetchFlavors;
+
 document.addEventListener("DOMContentLoaded", () => {
     initTableNumber();
-    loadFlavorsFromDB();
+    fetchFlavors();
     syncGuestLoyalty();
 
     if (localStorage.getItem("mama_auth_phone") === "true") {
@@ -577,3 +672,100 @@ window.submitOrderFeedback = async function(orderId) {
     if (tg.showAlert) tg.showAlert("Спасибо за обратную связь!"); else alert("Спасибо за обратную связь!");
     loadOrderHistoryFromDB();
 };
+
+// Updates percentage labels and validates the 100% total
+function updateMixPercentages() {
+    const p1 = parseInt(document.getElementById('basePct')?.value || 0, 10);
+    const p2 = parseInt(document.getElementById('accentPct')?.value || 0, 10);
+    const p3 = parseInt(document.getElementById('adjPct')?.value || 0, 10);
+
+    const total = p1 + p2 + p3;
+
+    // Update individual labels
+    const l1 = document.getElementById('basePctLabel');
+    const l2 = document.getElementById('accentPctLabel');
+    const l3 = document.getElementById('adjPctLabel');
+    if (l1) l1.textContent = `${p1}%`;
+    if (l2) l2.textContent = `${p2}%`;
+    if (l3) l3.textContent = `${p3}%`;
+
+    // Update total counter badge
+    const badge = document.getElementById('mixTotalBadge');
+    const totalVal = document.getElementById('mixTotalVal');
+    const submitBtn = document.getElementById('submitMixBtn');
+
+    if (totalVal) totalVal.textContent = total;
+
+    if (badge && submitBtn) {
+        if (total === 100) {
+            badge.className = "px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-100 text-emerald-700";
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            badge.className = "px-2.5 py-1 rounded-lg text-xs font-black bg-rose-100 text-rose-600";
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+}
+
+// Active filter state
+const activeFilters = {
+    category: 'all',
+    profile: 'all'
+};
+
+function setFilter(type, value, btnElement) {
+    activeFilters[type] = value.toLowerCase();
+
+    // Update active styles for Category chips
+    if (type === 'category') {
+        document.querySelectorAll('.cat-chip').forEach(btn => {
+            btn.className = "cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all";
+        });
+        btnElement.className = "cat-chip active px-3.5 py-1.5 bg-mama text-white text-xs font-bold rounded-full whitespace-nowrap shadow-sm transition-all";
+    }
+
+    // Update active styles for Profile chips
+    if (type === 'profile') {
+        document.querySelectorAll('.prof-chip').forEach(btn => {
+            btn.className = "prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all";
+        });
+        btnElement.className = "prof-chip active px-3 py-1 bg-gray-900 text-white text-[11px] font-bold rounded-full whitespace-nowrap transition-all";
+    }
+
+    applyFlavorFilters();
+}
+
+function applyFlavorFilters() {
+    if (!allFlavors || !Array.isArray(allFlavors)) return;
+
+    const filtered = allFlavors.filter(item => {
+        // Build combined text string to match against (name, tag, flavor_notes, profile, brand)
+        const searchableText = [
+            item.name,
+            item.tag,
+            item.type,
+            item.flavor_notes,
+            item.profile,
+            item.brand
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        // 1. Check Category match
+        const matchesCategory = activeFilters.category === 'all' || 
+            searchableText.includes(activeFilters.category);
+
+        // 2. Check Profile / Taste note match
+        const matchesProfile = activeFilters.profile === 'all' || 
+            searchableText.includes(activeFilters.profile);
+
+        return matchesCategory && matchesProfile;
+    });
+
+    // Update flavor counter badge
+    const badge = document.getElementById('flavorCountBadge');
+    if (badge) badge.textContent = `${filtered.length} вкусов`;
+
+    // Render results
+    renderCatalog(filtered);
+}

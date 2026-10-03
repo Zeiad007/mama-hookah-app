@@ -28,10 +28,7 @@
     </style>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <button onclick="openCallMasterModal()" class="bg-mama text-white text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-md shadow-mama/30 active:scale-95 transition-transform">
-        🔔 Позвать мастера
-    </button>
-</head>
+
 <body class="overflow-hidden select-none text-gray-900">
     <!-- Gatekeeper Lock Screen -->
     <div id="gatekeeperScreen" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 text-center">
@@ -71,80 +68,110 @@
         <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto p-4 pb-24 relative bg-gray-50">
             
-        <!-- View 1: Live Shelf -->
-            <section id="view-shelf" class="space-y-4">
-                <h2 class="text-xl font-extrabold text-gray-900 mb-1">Наше меню</h2>
-                
-                <!-- Horizontal Filter Chips -->
-                <div class="flex space-x-2 overflow-x-auto pb-2 mb-2" style="scrollbar-width: none;">
-                    <button onclick="filterMenu('All', this)" class="filter-btn px-4 py-1.5 bg-mama text-white border border-transparent text-xs font-bold rounded-full whitespace-nowrap shadow-md shadow-mama/20 transition-all">Все</button>
-                    <button onclick="filterMenu('Must Have', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">Must Have</button>
-                    <button onclick="filterMenu('Black Burn', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">Black Burn</button>
-                    <button onclick="filterMenu('Deus', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">Deus</button>
-                    <button onclick="filterMenu('Tangiers', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">Tangiers</button>
+                <!-- View 1: Live Shelf -->
+                <section id="view-shelf" class="space-y-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <h2 class="text-xl font-extrabold text-gray-900">Наше меню</h2>
+                        <span id="flavorCountBadge" class="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">0 вкусов</span>
+                    </div>
+
+                    <!-- Tier 1: Category Chips -->
+                    <div class="flex space-x-1.5 overflow-x-auto pb-1" style="scrollbar-width: none;">
+                        <button onclick="setFilter('category', 'all', this)" class="cat-chip active px-3.5 py-1.5 bg-mama text-white text-xs font-bold rounded-full whitespace-nowrap shadow-sm transition-all">Все</button>
+                        <button onclick="setFilter('category', 'ягоды', this)" class="cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">🍓 Ягоды</button>
+                        <button onclick="setFilter('category', 'фрукты', this)" class="cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">🍊 Фрукты</button>
+                        <button onclick="setFilter('category', 'десерты', this)" class="cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">🍰 Десерты</button>
+                        <button onclick="setFilter('category', 'напитки', this)" class="cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">🍹 Напитки</button>
+                    </div>
+
+                    <!-- Tier 2: Profile / Taste Direction Chips -->
+                    <div class="flex space-x-1.5 overflow-x-auto pb-2" style="scrollbar-width: none;">
+                        <button onclick="setFilter('profile', 'all', this)" class="prof-chip active px-3 py-1 bg-gray-900 text-white text-[11px] font-bold rounded-full whitespace-nowrap transition-all">Любой вкус</button>
+                        <button onclick="setFilter('profile', 'кислый', this)" class="prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all">🍋 Кислый</button>
+                        <button onclick="setFilter('profile', 'сладкий', this)" class="prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all">🍯 Сладкий</button>
+                        <button onclick="setFilter('profile', 'кисло-сладкий', this)" class="prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all">🍬 Кисло-сладкий</button>
+                        <button onclick="setFilter('profile', 'свежий', this)" class="prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all">❄️ Свежий / Лед</button>
+                    </div>
+
+                    <!-- Catalog Cards Container -->
+                    <div id="catalogContainer" class="space-y-3 pb-24"></div>
+                </section>
+                        <!-- View 2: Mix Lab -->
+            <section id="view-mixlab" class="hidden space-y-4">
+                <div class="flex justify-between items-end mb-1">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-gray-900">Собери свой микс</h2>
+                        <p class="text-xs text-gray-500">Настройте пропорции вкусов под себя</p>
+                    </div>
+                    <!-- Live Total Counter Badge -->
+                    <div id="mixTotalBadge" class="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-100 text-emerald-700">
+                        Итого: <span id="mixTotalVal">100</span>%
+                    </div>
                 </div>
 
-                <!-- The container where JS injects the cards -->
-                <div id="catalogContainer" class="space-y-3 pb-4"></div>
-            </section>
-
-            <!-- View 2: Mix Lab -->
-            <section id="view-mixlab" class="hidden space-y-4">
-                <h2 class="text-xl font-extrabold text-gray-900 mb-1">Собери свой микс</h2>
-                <p class="text-sm text-gray-500 mb-4">Баланс 60/30/10 для идеальной чаши.</p>
-
-                <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4">
-                    <!-- Base 60% -->
-                    <div>
-                        <label class="block text-[11px] font-bold text-mama uppercase tracking-widest mb-1.5">1. База (60%)</label>
-                        <select id="baseSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-5">
+                    <!-- Taste 1 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">1. Первый вкус</label>
+                            <span id="basePctLabel" class="text-xs font-extrabold text-gray-700">60%</span>
+                        </div>
+                        <select id="baseSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
                             <option value="" disabled selected>Загрузка вкусов...</option>
                         </select>
+                        <input type="range" id="basePct" min="0" max="100" step="5" value="60" oninput="updateMixPercentages()" class="w-full accent-mama cursor-pointer">
                     </div>
 
-                    <!-- Accent 30% -->
-                    <div>
-                        <label class="block text-[11px] font-bold text-mama uppercase tracking-widest mb-1.5">2. Акцент (30%)</label>
-                        <select id="accentSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                    <!-- Taste 2 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">2. Второй вкус</label>
+                            <span id="accentPctLabel" class="text-xs font-extrabold text-gray-700">30%</span>
+                        </div>
+                        <select id="accentSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
                             <option value="" disabled selected>Загрузка вкусов...</option>
                         </select>
+                        <input type="range" id="accentPct" min="0" max="100" step="5" value="30" oninput="updateMixPercentages()" class="w-full accent-mama cursor-pointer">
                     </div>
 
-                    <!-- Correction 10% -->
-                    <div>
-                        <label class="block text-[11px] font-bold text-mama uppercase tracking-widest mb-1.5">3. Оттенок (10%)</label>
-                        <select id="adjSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                    <!-- Taste 3 -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">3. Третий вкус (оттенок)</label>
+                            <span id="adjPctLabel" class="text-xs font-extrabold text-gray-700">10%</span>
+                        </div>
+                        <select id="adjSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
                             <option value="Без оттенка" selected>Без оттенка (0%)</option>
                         </select>
+                        <input type="range" id="adjPct" min="0" max="100" step="5" value="10" oninput="updateMixPercentages()" class="w-full accent-mama cursor-pointer">
                     </div>
 
-                    <hr class="border-gray-100 my-4">
+                    <hr class="border-gray-100 my-2">
 
-                    <!-- Bowl & Table -->
+                    <!-- Bowl & Table details -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Чаша</label>
-                            <select id="bowlSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30 appearance-none">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Чаша</label>
+                            <select id="bowlSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-xs font-semibold rounded-xl p-3 focus:outline-none">
                                 <option value="Турка">Турка (Мягко)</option>
-                                <option value="Убивашка">Убивашка (Крепче)</option>
+                                <option value="Убивашка">Убивашка (Крепко)</option>
+                                <option value="Фанел">Фанел (Сироп)</option>
                             </select>
                         </div>
-                       <div>
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Номер стола</label>
-                            <div class="relative">
-                                <input type="number" id="mixTableNum" placeholder="Напр: 4" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3.5 focus:outline-none focus:ring-2 focus:ring-mama/30 placeholder-gray-400 transition-all">
-                                <!-- Hidden Admin Lock Badge -->
-                                <span id="adminLockBadge" class="hidden absolute right-3 top-3.5 text-[10px] font-black bg-green-100 text-green-700 px-2 py-1 rounded-md">
-                                    ✓ Подтвержден
-                                </span>
-                            </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Номер стола</label>
+                            <input id="tableInput" type="number" placeholder="Напр: 4" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-xs font-semibold rounded-xl p-3 focus:outline-none">
                         </div>
-                        <div class="mt-3">
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Пожелание к забивке / мастеру (необязательно)</label>
-                            <input type="text" id="mixNotes" placeholder="Например: покрепче, побольше льда, чаша посвежее..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-mama">
-                        </div>
-                    <button onclick="sendMixOrder()" class="w-full bg-mama hover:bg-[#c90046] text-white font-black text-sm py-4 rounded-xl shadow-md shadow-mama/30 transition-transform active:scale-95 mt-2">
-                        Отправить мастеру 💨
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Пожелание к забивке (необязательно)</label>
+                        <input id="mixComment" type="text" placeholder="Например: покрепче, побольше льда" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-xs font-medium rounded-xl p-3 focus:outline-none">
+                    </div>
+
+                    <button onclick="submitCustomMix()" id="submitMixBtn" class="w-full py-4 bg-mama hover:bg-mama/90 text-white font-extrabold rounded-2xl shadow-lg shadow-mama/30 flex items-center justify-center gap-2 transition-all">
+                        <span>Отправить мастеру</span>
+                        <span>💨</span>
                     </button>
                 </div>
             </section>
