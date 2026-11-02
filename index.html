@@ -14,20 +14,34 @@
             theme: {
                 extend: {
                     colors: {
-                        mama: '#E60050', // Mama's signature magenta/pink
+                        mama: '#E60050',
                     }
                 }
             }
         }
     </script>
     <style>
-        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .hidden { display: none !important; }
-        /* Forces the app to look like a phone screen on your computer */
-        .mobile-wrapper { max-width: 420px; margin: 0 auto; background: #ffffff; height: 100vh; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        body {
+            background-color: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .mobile-wrapper {
+            max-width: 420px;
+            margin: 0 auto;
+            background: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        }
     </style>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
 
 <body class="overflow-hidden select-none text-gray-900">
     <!-- Gatekeeper Lock Screen -->
@@ -43,60 +57,68 @@
 
     <div class="mobile-wrapper">
         <!-- Top Header -->
-        <!-- Top Header -->
         <header class="p-4 bg-white border-b border-gray-100 sticky top-0 z-40">
             <div class="flex justify-between items-center mb-3">
                 <div>
-                 <!-- Your custom image logo -->
-                 <img src="mama-logo-header.png" alt="Mama Hookah" class="h-8 object-contain cursor-pointer">
-                 <p class="text-[10px] text-gray-500 font-medium">Академика Парина 41</p>
+                    <img src="mama-logo-header.png" alt="Mama Hookah" class="h-8 object-contain cursor-pointer">
+                    <p class="text-[10px] text-gray-500 font-medium">Академика Парина 41</p>
                 </div>
                 <div class="text-right">
-                  <p id="userName" class="text-sm font-bold text-gray-800">Гость</p>
-                  <div class="bg-mama/10 text-mama text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block">
-                      СТОЛ: <span id="tableDisplay">--</span>
-                  </div>
-              </div>
+                    <p id="userName" class="text-sm font-bold text-gray-800">Гость</p>
+                    <div class="bg-mama/10 text-mama text-[10px] font-extrabold px-2 py-0.5 rounded-full inline-block">
+                        СТОЛ: <span id="tableDisplay">--</span>
+                    </div>
+                </div>
             </div>
 
-        <!-- Quick Call Button -->
-        <button type="button" onclick="openCallMasterModal()" class="w-full bg-mama/10 hover:bg-mama hover:text-white text-mama border border-mama/20 text-xs font-black py-2 rounded-xl flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all">
-            <span>🔔</span> Позвать мастера к столу
-        </button>
-    </header>
+            <!-- Quick Call Button -->
+            <button type="button" onclick="openCallMasterModal()" class="w-full bg-mama/10 hover:bg-mama hover:text-white text-mama border border-mama/20 text-xs font-black py-2 rounded-xl flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all">
+                <span>🔔</span> Позвать мастера к столу
+            </button>
+        </header>
 
         <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto p-4 pb-24 relative bg-gray-50">
-            
-                <!-- View 1: Live Shelf -->
-                <section id="view-shelf" class="space-y-3">
-                    <div class="flex justify-between items-center mb-1">
-                        <h2 class="text-xl font-extrabold text-gray-900">Наше меню</h2>
-                        <span id="flavorCountBadge" class="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">0 вкусов</span>
-                    </div>
+            <!-- View 1: Live Shelf -->
+            <section id="view-shelf" class="space-y-3">
+                <!-- Banner: Curated Mixes -->
+                <div class="mb-3">
+                    <button onclick="openTasteWizard()" class="w-full bg-gradient-to-r from-mama via-pink-600 to-rose-500 text-white p-4 rounded-2xl shadow-lg shadow-mama/25 flex items-center justify-between active:scale-[0.98] transition-all">
+                        <div class="flex items-center space-x-3 text-left">
+                            <span class="text-2xl">✨</span>
+                            <div>
+                                <div class="text-sm font-black leading-tight">Популярные готовые миксы</div>
+                                <div class="text-[11px] text-white/80 font-medium">Топовые сочетания от наших мастеров</div>
+                            </div>
+                        </div>
+                        <span class="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Выбрать</span>
+                    </button>
+                </div>
 
-                    <!-- Tier 1: Category Chips -->
-                    <div class="flex space-x-1.5 overflow-x-auto pb-1" style="scrollbar-width: none;">
-                        <button onclick="setFilter('category', 'all', this)" class="cat-chip active px-3.5 py-1.5 bg-mama text-white text-xs font-bold rounded-full whitespace-nowrap shadow-sm transition-all">Все</button>
-                        <button onclick="setFilter('category', 'ягоды', this)" class="cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">🍓 Ягоды</button>
-                        <button onclick="setFilter('category', 'фрукты', this)" class="cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">🍊 Фрукты</button>
-                        <button onclick="setFilter('category', 'десерты', this)" class="cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">🍰 Десерты</button>
-                        <button onclick="setFilter('category', 'напитки', this)" class="cat-chip px-3.5 py-1.5 bg-white text-gray-600 border border-gray-200 text-xs font-bold rounded-full whitespace-nowrap transition-all">🍹 Напитки</button>
-                    </div>
+                <!-- Catalog Header -->
+                <div class="flex justify-between items-center mb-1">
+                    <h2 class="text-xl font-extrabold text-gray-900">Наше меню</h2>
+                </div>
 
-                    <!-- Tier 2: Profile / Taste Direction Chips -->
-                    <div class="flex space-x-1.5 overflow-x-auto pb-2" style="scrollbar-width: none;">
-                        <button onclick="setFilter('profile', 'all', this)" class="prof-chip active px-3 py-1 bg-gray-900 text-white text-[11px] font-bold rounded-full whitespace-nowrap transition-all">Любой вкус</button>
-                        <button onclick="setFilter('profile', 'кислый', this)" class="prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all">🍋 Кислый</button>
-                        <button onclick="setFilter('profile', 'сладкий', this)" class="prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all">🍯 Сладкий</button>
-                        <button onclick="setFilter('profile', 'кисло-сладкий', this)" class="prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all">🍬 Кисло-сладкий</button>
-                        <button onclick="setFilter('profile', 'свежий', this)" class="prof-chip px-3 py-1 bg-white text-gray-600 border border-gray-200 text-[11px] font-bold rounded-full whitespace-nowrap transition-all">❄️ Свежий / Лед</button>
-                    </div>
+                <!-- Catalog Cards Container -->
+                <div id="catalogContainer" class="space-y-3 pb-24"></div>
 
-                    <!-- Catalog Cards Container -->
-                    <div id="catalogContainer" class="space-y-3 pb-24"></div>
-                </section>
-                        <!-- View 2: Mix Lab -->
+                <!-- Curated Mixes Modal -->
+                <div id="tasteWizardModal" style="display: none;" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div class="bg-white w-full max-w-md max-h-[80vh] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl flex flex-col relative animate-in fade-in">
+                        <div class="flex justify-between items-center pb-3 border-b border-gray-100 flex-shrink-0">
+                            <div>
+                                <span class="text-[10px] font-black text-mama uppercase tracking-widest">Выбор заведения</span>
+                                <h3 class="text-lg font-extrabold text-gray-900">Фирменные миксы</h3>
+                            </div>
+                            <button onclick="closeTasteWizard()" class="text-gray-400 hover:text-gray-700 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold">✕</button>
+                        </div>
+
+                        <div id="curatedMixesContainer" class="overflow-y-auto py-3 space-y-3 flex-1 pr-1" style="scrollbar-width: thin;"></div>
+                    </div>
+                </div>
+            </section>  
+                     <!-- View 2: Mix Lab -->
             <section id="view-mixlab" class="hidden space-y-4">
                 <div class="flex justify-between items-end mb-1">
                     <div>
@@ -110,39 +132,54 @@
                 </div>
 
                 <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-5">
-                    <!-- Taste 1 -->
+                    <!-- 1. Первый вкус (База) -->
                     <div class="space-y-2">
                         <div class="flex justify-between items-center">
-                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">1. Первый вкус</label>
+                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">1. Первый вкус (База)</label>
                             <span id="basePctLabel" class="text-xs font-extrabold text-gray-700">60%</span>
                         </div>
-                        <select id="baseSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
-                            <option value="" disabled selected>Загрузка вкусов...</option>
-                        </select>
+                        <div class="flex items-center gap-2">
+                            <select id="baseSelect" class="flex-1 bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                                <option value="" disabled selected>Выберите вкус...</option>
+                            </select>
+                            <button type="button" onclick="clearMixSlot('base')" class="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-400 rounded-xl font-black text-sm transition-all" title="Удалить вкус">
+                                ✕
+                            </button>
+                        </div>
                         <input type="range" id="basePct" min="0" max="100" step="5" value="60" oninput="updateMixPercentages()" class="w-full accent-mama cursor-pointer">
                     </div>
 
-                    <!-- Taste 2 -->
+                    <!-- 2. Второй вкус (Акцент) -->
                     <div class="space-y-2">
                         <div class="flex justify-between items-center">
-                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">2. Второй вкус</label>
+                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">2. Второй вкус (Акцент)</label>
                             <span id="accentPctLabel" class="text-xs font-extrabold text-gray-700">30%</span>
                         </div>
-                        <select id="accentSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
-                            <option value="" disabled selected>Загрузка вкусов...</option>
-                        </select>
+                        <div class="flex items-center gap-2">
+                            <select id="accentSelect" class="flex-1 bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                                <option value="" disabled selected>Выберите вкус...</option>
+                            </select>
+                            <button type="button" onclick="clearMixSlot('accent')" class="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-400 rounded-xl font-black text-sm transition-all" title="Удалить вкус">
+                                ✕
+                            </button>
+                        </div>
                         <input type="range" id="accentPct" min="0" max="100" step="5" value="30" oninput="updateMixPercentages()" class="w-full accent-mama cursor-pointer">
                     </div>
 
-                    <!-- Taste 3 -->
+                    <!-- 3. Третий вкус (Оттенок) -->
                     <div class="space-y-2">
                         <div class="flex justify-between items-center">
-                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">3. Третий вкус (оттенок)</label>
+                            <label class="text-[11px] font-bold text-mama uppercase tracking-widest">3. Третий вкус (Оттенок)</label>
                             <span id="adjPctLabel" class="text-xs font-extrabold text-gray-700">10%</span>
                         </div>
-                        <select id="adjSelect" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
-                            <option value="Без оттенка" selected>Без оттенка (0%)</option>
-                        </select>
+                        <div class="flex items-center gap-2">
+                            <select id="adjSelect" class="flex-1 bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-mama/30">
+                                <option value="Без оттенка" selected>Без оттенка (0%)</option>
+                            </select>
+                            <button type="button" onclick="clearMixSlot('adj')" class="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-400 rounded-xl font-black text-sm transition-all" title="Удалить вкус">
+                                ✕
+                            </button>
+                        </div>
                         <input type="range" id="adjPct" min="0" max="100" step="5" value="10" oninput="updateMixPercentages()" class="w-full accent-mama cursor-pointer">
                     </div>
 
@@ -175,8 +212,7 @@
                     </button>
                 </div>
             </section>
-
-<!-- View 3: Passport -->
+                    <!-- View 3: Passport -->
             <section id="view-passport" class="hidden space-y-4">
                 <h2 class="text-xl font-extrabold text-gray-900 mb-1">Бонусная программа</h2>
                 <p class="text-sm text-gray-500 mb-4">Копите баллы и открывайте эксклюзивные привилегии.</p>
@@ -272,54 +308,53 @@
             <section id="view-history" class="hidden space-y-4">
                 <h2 class="text-xl font-extrabold text-gray-900 mb-1">История заказов</h2>
                 <p class="text-sm text-gray-500 mb-4">Ваши любимые миксы из прошлых визитов.</p>
-                
-                <!-- The container where JS injects the history cards -->
+
+                <!-- History Cards Container -->
                 <div id="historyContainer" class="space-y-3 pb-4">
                     <p class="text-sm text-gray-400 text-center mt-10">Загрузка истории...</p>
                 </div>
             </section>
-             <!-- VIEW 5: Feedback & Review Screen -->
-                <section id="view-review" class="space-y-4 hidden pb-24">
-                    <div class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm space-y-4">
-                        <div>
-                            <h2 class="text-lg font-black text-gray-900">Оценить кальян</h2>
-                            <p class="text-xs text-gray-400 mt-0.5">Помогите нам стать лучше или похвалите мастера</p>
-                        </div>
-
-                        <!-- Star Rating Widget -->
-                        <div class="flex justify-center gap-2 py-2" id="starContainer">
-                            <button type="button" onclick="setFeedbackRating(1)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
-                            <button type="button" onclick="setFeedbackRating(2)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
-                            <button type="button" onclick="setFeedbackRating(3)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
-                            <button type="button" onclick="setFeedbackRating(4)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
-                            <button type="button" onclick="setFeedbackRating(5)" class="star-btn text-3xl text-amber-400 transition-transform active:scale-125">★</button>
-                        </div>
-
-                        <!-- Quick Compliments Pills -->
-                        <div class="space-y-1.5">
-                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Что понравилось больше всего?</label>
-                            <div class="flex flex-wrap gap-2 pt-1">
-                                <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">💨 Много дыма</button>
-                                <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">🍓 Точный вкус</button>
-                                <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">⚡ Быстрая подача</button>
-                                <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">👨‍🍳 Топовый мастер</button>
-                            </div>
-                        </div>
-
-                        <!-- Freeform Text Comment -->
-                        <div class="space-y-1.5">
-                            <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Ваш комментарий</label>
-                            <textarea id="feedbackComment" rows="3" placeholder="Что мастер сделал круто или что стоило улучшить..." class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-mama resize-none"></textarea>
-                        </div>
-
-                        <button onclick="submitGuestFeedback()" class="w-full bg-mama hover:bg-red-600 text-white font-extrabold py-3.5 rounded-2xl text-xs tracking-wider shadow-lg shadow-mama/25 active:scale-[0.98] transition-all">
-                            Отправить отзыв
-                        </button>
+             <!-- View 5: Feedback & Review Screen -->
+            <section id="view-review" class="hidden space-y-4 pb-24">
+                <div class="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div>
+                        <h2 class="text-lg font-black text-gray-900">Оценить кальян</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">Помогите нам стать лучше или похвалите мастера</p>
                     </div>
-                </section>
+
+                    <!-- Star Rating Widget -->
+                    <div class="flex justify-center gap-2 py-2" id="starContainer">
+                        <button type="button" onclick="setFeedbackRating(1)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
+                        <button type="button" onclick="setFeedbackRating(2)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
+                        <button type="button" onclick="setFeedbackRating(3)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
+                        <button type="button" onclick="setFeedbackRating(4)" class="star-btn text-3xl text-gray-200 transition-transform active:scale-125">★</button>
+                        <button type="button" onclick="setFeedbackRating(5)" class="star-btn text-3xl text-amber-400 transition-transform active:scale-125">★</button>
+                    </div>
+
+                    <!-- Quick Compliments Pills -->
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Что понравилось больше всего?</label>
+                        <div class="flex flex-wrap gap-2 pt-1">
+                            <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">💨 Много дыма</button>
+                            <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">🍓 Точный вкус</button>
+                            <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">⚡ Быстрая подача</button>
+                            <button type="button" onclick="toggleTag(this)" class="review-tag bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all">👨‍🍳 Топовый мастер</button>
+                        </div>
+                    </div>
+
+                    <!-- Freeform Text Comment -->
+                    <div class="space-y-1.5">
+                        <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Ваш комментарий</label>
+                        <textarea id="feedbackComment" rows="3" placeholder="Что мастер сделал круто или что стоило улучшить..." class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-3.5 text-xs font-semibold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-mama resize-none"></textarea>
+                    </div>
+
+                    <button onclick="submitGuestFeedback()" class="w-full bg-mama hover:bg-red-600 text-white font-extrabold py-3.5 rounded-2xl text-xs tracking-wider shadow-lg shadow-mama/25 active:scale-[0.98] transition-all">
+                        Отправить отзыв
+                    </button>
+                </div>
+            </section>
         </main>
 
-        <!-- Bottom Navigation Bar -->
         <!-- Bottom Navigation (5 Tabs) -->
         <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 py-2 flex justify-around items-center z-40 max-w-md mx-auto">
             <button onclick="switchTab('shelf')" id="tab-shelf" class="flex flex-col items-center flex-1 py-1 text-mama transition-colors">
@@ -345,33 +380,32 @@
         </nav>
     </div>
 
-    <script src="app.js"></script>
-    
     <!-- Call Master Modal -->
     <div id="callMasterModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4 hidden">
-     <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4">
-        <div class="flex justify-between items-center">
-            <h3 class="text-base font-black text-gray-900">Позвать кальянщика</h3>
-            <button onclick="closeCallMasterModal()" class="text-gray-400 text-lg font-bold">✕</button>
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-black text-gray-900">Позвать кальянщика</h3>
+                <button onclick="closeCallMasterModal()" class="text-gray-400 text-lg font-bold">✕</button>
             </div>
             <p class="text-xs text-gray-500">Выберите причину, и мастер сразу подойдет к вашему столу:</p>
 
-         <div class="grid grid-cols-1 gap-2.5">
-             <button onclick="sendMasterCall('🔥 Горчит / пригорает')" class="w-full text-left bg-gray-50 hover:bg-mama/10 border border-gray-200 hover:border-mama/30 text-gray-800 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2">
-                <span>🔥</span> Горчит / Пригорает
-             </button>
+            <div class="grid grid-cols-1 gap-2.5">
+                <button onclick="sendMasterCall('🔥 Горчит / пригорает')" class="w-full text-left bg-gray-50 hover:bg-mama/10 border border-gray-200 hover:border-mama/30 text-gray-800 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2">
+                    <span>🔥</span> Горчит / Пригорает
+                </button>
                 <button onclick="sendMasterCall('💨 Заменить угли')" class="w-full text-left bg-gray-50 hover:bg-mama/10 border border-gray-200 hover:border-mama/30 text-gray-800 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2">
-                <span>💨</span> Поменять угли
-             </button>
-             <button onclick="sendMasterCall('🧊 Остудить / Убрать лишний жар')" class="w-full text-left bg-gray-50 hover:bg-mama/10 border border-gray-200 hover:border-mama/30 text-gray-800 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2">
-                <span>🧊</span> Снять уголь / Слишком крепко
-             </button>
-             <button onclick="sendMasterCall('🙋 Нужна консультация / вопрос')" class="w-full text-left bg-gray-50 hover:bg-mama/10 border border-gray-200 hover:border-mama/30 text-gray-800 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2">
-                <span>🙋</span> Подойти к столу
-            </button>
+                    <span>💨</span> Поменять угли
+                </button>
+                <button onclick="sendMasterCall('🧊 Остудить / Убрать лишний жар')" class="w-full text-left bg-gray-50 hover:bg-mama/10 border border-gray-200 hover:border-mama/30 text-gray-800 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2">
+                    <span>🧊</span> Снять уголь / Слишком крепко
+                </button>
+                <button onclick="sendMasterCall('🙋 Нужна консультация / вопрос')" class="w-full text-left bg-gray-50 hover:bg-mama/10 border border-gray-200 hover:border-mama/30 text-gray-800 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2">
+                    <span>🙋</span> Подойти к столу
+                </button>
             </div>
         </div>
     </div>
 
+    <script src="app.js?v=2"></script>
 </body>
 </html>
